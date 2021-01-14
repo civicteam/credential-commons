@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "claim-cvc:SocialSecurity.number-v1",
+  "type": "object",
+  "properties": {
+    "areaNumber": {
+      "type": "string"
+    },
+    "groupNumber": {
+      "type": "string"
+    },
+    "serialNumber": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

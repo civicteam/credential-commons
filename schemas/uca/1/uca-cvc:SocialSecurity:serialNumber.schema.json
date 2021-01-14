@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cvc:SocialSecurity:serialNumber",
+  "type": "object",
+  "properties": {
+    "serialNumber": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
