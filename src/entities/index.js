@@ -1,9 +1,11 @@
 const { AttestableEntity } = require('./AttestableEntity');
 const { Claim } = require('./Claim');
-const { Identifier } = require('./Identifier');
+const { VerifiableCredential } = require('./VerifiableCredential');
+const { ParsedIdentifier } = require('./ParsedIdentifier');
 
 module.exports = {
-  Identifier,
+  ParsedIdentifier,
   Claim,
+  VerifiableCredential,
   AttestableEntity,
 };

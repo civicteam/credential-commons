@@ -2,8 +2,7 @@ const _ = require('lodash');
 const MerkleTools = require('merkle-tools');
 
 const { sha256 } = require('../lib/crypto');
-const { Claim } = require('../claim/Claim');
-const claimDefinitions = require('../claim/definitions');
+const { Claim } = require('../entities');
 const { services } = require('../services');
 
 function getClaimPath(identifier, claimsPathRef) {

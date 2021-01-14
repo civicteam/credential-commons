@@ -1,4 +1,3 @@
-const { UserCollectableAttribute } = require('@identity.com/uca');
 const { Claim } = require('../../src/entities/Claim');
 
 const nameClaimData = {
@@ -182,49 +181,51 @@ describe('Claim Constructions tests', () => {
     expect(phone.value).toEqual(value);
   });
 
-  test('Transforming UCA to Claim', () => {
-    const ucaIdentifier = 'cvc:Identity:dateOfBirth';
-    const claimIdentifier = 'claim-cvc:Identity:dateOfBirth-v1';
-    const value = {
-      day: 20,
-      month: 12,
-      year: 1978,
-    };
+  describe.skip('MOVE TO UCA LIB: UCAs to Claims', () => {
+    test('Transforming UCA to Claim', () => {
+      const ucaIdentifier = 'cvc:Identity:dateOfBirth';
+      const claimIdentifier = 'claim-cvc:Identity:dateOfBirth-v1';
+      const value = {
+        day: 20,
+        month: 12,
+        year: 1978,
+      };
 
-    const dateOfBirthUCA = new UserCollectableAttribute(ucaIdentifier, value);
-    expect(dateOfBirthUCA).toBeDefined();
-    expect(dateOfBirthUCA.value).toBeDefined();
-    expect(dateOfBirthUCA.value.day).toBeDefined();
-    expect(dateOfBirthUCA.value.day.value).toBe(20);
+      const dateOfBirthUCA = new UserCollectableAttribute(ucaIdentifier, value);
+      expect(dateOfBirthUCA).toBeDefined();
+      expect(dateOfBirthUCA.value).toBeDefined();
+      expect(dateOfBirthUCA.value.day).toBeDefined();
+      expect(dateOfBirthUCA.value.day.value).toBe(20);
 
-    // converting UCA to Claim
-    const dateOfBirthClaim = new Claim(claimIdentifier, dateOfBirthUCA.getPlainValue());
+      // converting UCA to Claim
+      const dateOfBirthClaim = new Claim(claimIdentifier, dateOfBirthUCA.getPlainValue());
 
-    expect(dateOfBirthClaim).toBeDefined();
-    expect(dateOfBirthClaim.value).toBeDefined();
-    expect(dateOfBirthClaim.value.day).toBeDefined();
-    expect(dateOfBirthClaim.value.day.value).toBe(20);
-  });
+      expect(dateOfBirthClaim).toBeDefined();
+      expect(dateOfBirthClaim.value).toBeDefined();
+      expect(dateOfBirthClaim.value.day).toBeDefined();
+      expect(dateOfBirthClaim.value.day.value).toBe(20);
+    });
 
-  test('Transforming alias UCA to Claim', () => {
-    const identifier = 'cvc:Document:evidences';
-    const aliasIdentifier = 'cvc:Validation:evidences';
-    const value = {
-      idDocumentFront: { algorithm: 'sha256', data: 'sha256(idDocumentFront)' },
-      idDocumentBack: { algorithm: 'sha256', data: 'sha256(idDocumentBack)' },
-      selfie: { algorithm: 'sha256', data: 'sha256(selfie)' },
-    };
+    test('Transforming alias UCA to Claim', () => {
+      const identifier = 'cvc:Document:evidences';
+      const aliasIdentifier = 'cvc:Validation:evidences';
+      const value = {
+        idDocumentFront: { algorithm: 'sha256', data: 'sha256(idDocumentFront)' },
+        idDocumentBack: { algorithm: 'sha256', data: 'sha256(idDocumentBack)' },
+        selfie: { algorithm: 'sha256', data: 'sha256(selfie)' },
+      };
 
-    const evidencesUCA = new UserCollectableAttribute(identifier, value);
-    const evidencesAliasUCA = new UserCollectableAttribute(aliasIdentifier, value);
+      const evidencesUCA = new UserCollectableAttribute(identifier, value);
+      const evidencesAliasUCA = new UserCollectableAttribute(aliasIdentifier, value);
 
-    // converting UCAs to Claims
-    const evidencesClaim = new Claim(identifier, evidencesUCA.getPlainValue());
-    const evidencesClaimForAliasUCA = new Claim(aliasIdentifier, evidencesAliasUCA.getPlainValue());
+      // converting UCAs to Claims
+      const evidencesClaim = new Claim(identifier, evidencesUCA.getPlainValue());
+      const evidencesClaimForAliasUCA = new Claim(aliasIdentifier, evidencesAliasUCA.getPlainValue());
 
-    // should map to the same claim
-    expect(evidencesClaimForAliasUCA.identifier).toEqual(evidencesClaim.identifier);
-    expect(evidencesClaimForAliasUCA.getPlainValue()).toEqual(evidencesClaim.getPlainValue());
-    expect(evidencesClaim.identifier).toBe('claim-cvc:Document.evidences-v1');
+      // should map to the same claim
+      expect(evidencesClaimForAliasUCA.identifier).toEqual(evidencesClaim.identifier);
+      expect(evidencesClaimForAliasUCA.getPlainValue()).toEqual(evidencesClaim.getPlainValue());
+      expect(evidencesClaim.identifier).toBe('claim-cvc:Document.evidences-v1');
+    });
   });
 });

@@ -8,9 +8,6 @@ const { v4: uuidv4 } = require('uuid');
 const MerkleTools = require('merkle-tools');
 
 const { sha256 } = require('../lib/crypto');
-const { Claim } = require('../claim/Claim');
-
-const definitions = require('./definitions');
 
 const { services } = require('../services');
 const time = require('../timeHelper');
@@ -19,8 +16,6 @@ const { ClaimModel } = require('./ClaimModel');
 
 // convert a time delta to a timestamp
 const convertDeltaToTimestamp = (delta) => time.applyDeltaToDate(delta).getTime() / 1000;
-
-const validIdentifiers = () => _.map(definitions, 'identifier');
 
 function getClaimsWithFlatKeys(claims) {
   const flattenDepth3 = flatten(claims, { maxDepth: 3 });

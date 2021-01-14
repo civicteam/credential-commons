@@ -10,8 +10,6 @@ const Ajv = require('ajv').default;
 const traverse = require('json-schema-traverse');
 const addFormats = require('ajv-formats').default;
 
-const { Identifier } = require('../../entities/Identifier');
-
 const basePath = '../../../schemas';
 
 const ajv = new Ajv({
@@ -75,12 +73,16 @@ const loadSchemaForIdentifier = (identifier) => {
 };
 
 // Find and preload all type definitions for a given version
-const loadTypes = (version) => {
-  const typesPath = path.join(basePath, 'types', version);
-  const typeFiles = fs.readdirSync(path.join(__dirname, typesPath));
-  typeFiles.forEach((typeFile) => {
-    const typePath = path.join(typesPath, typeFile);
-    loadSchema(typePath);
+const loadTypes = () => {
+  const typeVersionsPath = path.join(basePath, 'type');
+  const versionDirs = fs.readdirSync(path.join(__dirname, typeVersionsPath));
+  versionDirs.forEach((versionPath) => {
+    const typesPath = path.join(basePath, 'type', versionPath);
+    const typeFiles = fs.readdirSync(path.join(__dirname, typesPath));
+    typeFiles.forEach((typeFile) => {
+      const typePath = path.join(typesPath, typeFile);
+      loadSchema(typePath);
+    });
   });
 };
 
@@ -92,14 +94,12 @@ const loadTypes = (version) => {
  * to http://identity.com/schemas/type-cvc:Name-v1#/definitions/name/properties/givenName
  *
  * This is used to allow claims of subschema without needing a schema for each property.
- * @param identifier
+ * @param parsedIdentifier {Identifier}
  * @return {{schema: ({foundSchema}|*), parsedIdentifier: Identifier, ref: string}}
  */
-const loadSchemaObject = (identifier) => {
-  const parsedIdentifier = new Identifier(identifier);
-
+const loadSchemaObject = (parsedIdentifier) => {
   const schemaLoader = loadSchemaForIdentifier(parsedIdentifier);
-  if (!schemaLoader.foundSchema) throw new Error(`No schema found for ${identifier}`);
+  if (!schemaLoader.foundSchema) throw new Error(`No schema found for ${parsedIdentifier.identifier}`);
 
   loadTypes(parsedIdentifier.version);
 
