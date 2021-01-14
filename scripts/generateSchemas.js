@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const claimDefinitions = require('../src/claim/definitions');
 const credentialDefinitions = require('../src/creds/definitions');
+const {pascalToCamelCase} = require('../src/lib/stringUtils');
 const schemaGenerator = require('../src/schemas/generator/SchemaGenerator');
 const { Claim, getBaseIdentifiers } = require('../src/claim/Claim');
 const { UserCollectableAttribute: UCA, definitions: ucaDefinitions } = require('@identity.com/uca');
@@ -68,11 +69,11 @@ const generateSchemaForDefinition = (definition, fileName, typeOfDefinition) => 
 }
 
 /**
- * Generate an Credential using the definition and it's correlateds Claims than generate the schema saving it on the file system
+ * Generate a Credential using the definition and its correlated Claims, then generate the schema, saving it on the file system
  * @returns {Promise<void>}
  */
 const generateCredentialSchemas = async () => {
-  credentialDefinitions.forEach(async (definition) => {
+  const promises = credentialDefinitions.map(async (definition) => {
     const ucaArray = [];
     const jsonValueDefinitions = {};
 
@@ -86,7 +87,7 @@ const generateCredentialSchemas = async () => {
       Object.keys(ucaJson).forEach((prop) => {
         delete ucaJson[prop].definition;
       });
-        
+
       let value = ucaJson;
       if (Object.keys(ucaJson).length === 1) {
         value = Object.values(ucaJson)[0];
@@ -99,7 +100,12 @@ const generateCredentialSchemas = async () => {
 
     definition.depends.forEach((ucaDefinitionIdentifier) => {
       const { identifierComponents } = getBaseIdentifiers(ucaDefinitionIdentifier);
-      credential.claim[identifierComponents[1].toLowerCase()][identifierComponents[2]] = jsonValueDefinitions[identifierComponents[2]];
+      try {
+        credential.claim[pascalToCamelCase(identifierComponents[1])][identifierComponents[2]] = jsonValueDefinitions[identifierComponents[2]];
+      } catch (error) {
+        console.warn('Error adding dependency ' + ucaDefinitionIdentifier, error);
+        throw error;
+      }
     });
 
     await credential.requestAnchor();
@@ -120,6 +126,8 @@ const generateCredentialSchemas = async () => {
       console.log(`Json Schema generated on:${fullPath}`);
     });
   });
+
+  await Promise.all(promises);
 };
 
 const generateBoth = async () => {
@@ -148,5 +156,8 @@ const generate = async () => {
   }
 };
 
-generate();
+generate().catch(error => {
+  console.error(error);
+  process.exit(1)
+});
 
