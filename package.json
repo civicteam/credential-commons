@@ -56,7 +56,6 @@
     "eslint-plugin-no-only-tests": "^2.4.0",
     "eslint-plugin-react": "^7.22.0",
     "jest": "^26.6.3",
-    "jest-html-reporter": "^3.2.0",
     "request-debug": "^0.2.0",
     "rimraf": "^3.0.2"
   },
@@ -95,29 +94,18 @@
       "<rootDir>/dist/"
     ],
     "collectCoverageFrom": [
-      "**/src/**/*.{js}",
-      "!**/node_modules/**",
-      "!**/build/**",
-      "!**/vendor/**",
-      "!src/services/DummyAnchorServiceImpl.js",
-      "!src/services/anchorService.js"
+      "src/**/*.js"
     ],
     "coverageThreshold": {
       "global": {
-        "branches": 85,
-        "functions": 85,
-        "lines": 85,
-        "statements": 85
+        "branches": 84,
+        "functions": 84,
+        "lines": 90,
+        "statements": 89
       }
     },
     "coverageDirectory": "reports/coverage",
     "collectCoverage": true,
-    "testResultsProcessor": "./node_modules/jest-html-reporter",
     "verbose": true
-  },
-  "jest-html-reporter": {
-    "pageTitle": "Verifiable Credential and Attestation Library Test Suite",
-    "outputPath": "reports/test-report.html",
-    "includeFailureMsg": true
   }
 }
