@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/type-cvc:Name-v1",
+  "title": "type-cvc:Name-v1",
+  "type": "object",
+  "definitions": {
+    "name": {
+      "type": "object",
+      "title": "type-cvc:Name-v1",
+      "required": ["givenNames"],
+      "properties": {
+        "givenNames": {
+          "type": "string"
+        },
+        "familyNames": {
+          "type": "string"
+        },
+        "otherNames": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

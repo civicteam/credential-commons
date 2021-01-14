@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "$id": "http://identity.com/schemas/type-cvc:Email-v1",
+  "definitions": {
+    "email": {
+      "title": "type-cvc:Email-v1",
+      "type": "object",
+      "required": [
+        "username",
+        "domain"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "object",
+          "required": [
+            "tld",
+            "name"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "tld": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

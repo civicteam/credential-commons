@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/type-cvc:Address-v1",
+  "type": "object",
+  "definitions": {
+    "address": {
+      "type": "object",
+      "title": "type-cvc:Address-v1",
+      "required": ["street", "city", "state", "country"],
+      "properties": {
+        "country": {
+          "type": "string"
+        },
+        "county": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "street": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "postalCode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

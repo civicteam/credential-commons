@@ -1,17 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/claim-cvc:Identity.name-v1",
   "title": "claim-cvc:Identity.name-v1",
   "type": "object",
-  "properties": {
-    "givenNames": {
-      "type": "string"
-    },
-    "familyNames": {
-      "type": "string"
-    },
-    "otherNames": {
-      "type": "string"
-    }
-  },
-  "additionalProperties": false
+  "allOf": [{"$ref": "http://identity.com/schemas/type-cvc:Name-v1#/definitions/name"}]
 }

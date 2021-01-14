@@ -1,29 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/claim-cvc:Document.address-v1",
   "title": "claim-cvc:Document.address-v1",
   "type": "object",
-  "properties": {
-    "country": {
-      "type": "string"
-    },
-    "county": {
-      "type": "string"
-    },
-    "state": {
-      "type": "string"
-    },
-    "street": {
-      "type": "string"
-    },
-    "unit": {
-      "type": "string"
-    },
-    "city": {
-      "type": "string"
-    },
-    "postalCode": {
-      "type": "string"
-    }
-  },
-  "additionalProperties": false
+  "allOf": [{"$ref": "http://identity.com/schemas/type-cvc:Address-v1#/definitions/address"}]
 }

@@ -776,25 +776,6 @@ VerifiableCredentialBaseConstructor.fromJSON = (verifiableCredentialJSON) => {
   return newObj;
 };
 
-/**
- * List all properties of a Verifiable Credential
- */
-VerifiableCredentialBaseConstructor.getAllProperties = (identifier) => {
-  const vcDefinition = _.find(definitions, { identifier });
-  if (vcDefinition) {
-    const allProperties = [];
-    _.forEach(vcDefinition.depends, (ucaIdentifier) => {
-      allProperties.push(...Claim.getAllProperties(ucaIdentifier));
-    });
-    const excludesProperties = [];
-    _.forEach(vcDefinition.excludes, (ucaIdentifier) => {
-      excludesProperties.push(...Claim.getAllProperties(ucaIdentifier));
-    });
-    return _.difference(allProperties, excludesProperties);
-  }
-  return null;
-};
-
 VerifiableCredentialBaseConstructor.VERIFY_LEVELS = VERIFY_LEVELS;
 VerifiableCredentialBaseConstructor.nonCryptographicallySecureVerify = nonCryptographicallySecureVerify;
 VerifiableCredentialBaseConstructor.cryptographicallySecureVerify = cryptographicallySecureVerify;

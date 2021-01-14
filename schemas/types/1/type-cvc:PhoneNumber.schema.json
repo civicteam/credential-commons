@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/type-cvc:PhoneNumber-v1",
+  "type": "object",
+  "definitions": {
+    "phoneNumber": {
+      "title": "type-cvc:PhoneNumber-v1",
+      "type": "object",
+      "required": ["country", "countryCode", "number", "lineType"],
+      "properties": {
+        "country": {
+          "type": "string"
+        },
+        "countryCode": {
+          "type": "string"
+        },
+        "number": {
+          "type": "string"
+        },
+        "extension": {
+          "type": "string"
+        },
+        "lineType": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
