@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/uca-cvc:S3Ref-v1",
+  "title": "uca-cvc:S3Ref-v1",
+  "type": "object",
+  "properties": {
+    "s3FileBucket": {
+      "type": "string"
+    },
+    "s3FileKey": {
+      "type": "string"
+    },
+    "MD5": {
+      "type": "string"
+    },
+    "ContentType": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

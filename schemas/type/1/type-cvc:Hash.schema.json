@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/type-cvc:Hash-v1",
+  "type": "object",
+  "definitions": {
+    "hash": {
+      "title": "type-cvc:Hash-v1",
+      "type": "object",
+      "properties": {
+        "algorithm": { "type": "string" },
+        "data": { "type": "string" }
+      },
+      "required": ["algorithm", "data"],
+      "additionalProperties": false
+    }
+  }
+}

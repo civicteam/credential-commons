@@ -21,6 +21,17 @@ describe('Claim Constructions tests', () => {
     expect(v.version).toEqual('1');
   });
 
+  // This flexibility (changing the nature of the identifier after construction)
+  // is required in order to allow UCAs inherit from claims.
+  test('changing the type to UCA should result in an accurate identifier', () => {
+    const claimIdentifier = 'claim-cvc:Identity.name.givenNames-v1';
+    const ucaIdentifier = 'uca-cvc:Identity.name.givenNames-v1';
+    const v = new Claim(claimIdentifier, nameClaimData.givenNames);
+
+    v.parsedIdentifier.type = 'uca';
+    expect(v.identifier).toEqual(ucaIdentifier);
+  });
+
   test('should not construct incomplete objects', () => {
     const identifier = 'claim-cvc:Identity.name-v1';
     const value = {
@@ -113,14 +124,14 @@ describe('Claim Constructions tests', () => {
   });
 
   describe('Attestable values', () => {
-    test.skip('Claim should construct a complex Attestatble Value: claim-cvc:Identity.name-v1', () => {
+    test('Claim should construct a complex Attestatble Value: claim-cvc:Identity.name-v1', () => {
       // eslint-disable-next-line max-len
       const aComplexAttestableValue = 'urn:name.familyNames:c443e0a97a2df34573f910927e25c58e597e211152dfb650e6210facacc1a065:Mustermann|urn:name.givenNames:f14ab211784a3b3d2f20d423847a775ad56c3be8104a51aa084f0c94756d953b:Max|urn:name.otherNames:09a31dab0a537ac5330a07df63effd9d2f55e91845956b58119843835f7dd9ed:Paul|';
       const v = new Claim.IdentityName({ attestableValue: aComplexAttestableValue });
       expect(v).toBeDefined();
     });
 
-    test.skip('Claim should create claim path correctly', () => {
+    test('Claim should create claim path correctly', () => {
       // eslint-disable-next-line max-len
       const aComplexAttestableValue = 'urn:name.familyNames:c443e0a97a2df34573f910927e25c58e597e211152dfb650e6210facacc1a065:Mustermann|urn:name.givenNames:f14ab211784a3b3d2f20d423847a775ad56c3be8104a51aa084f0c94756d953b:Max|urn:name.otherNames:09a31dab0a537ac5330a07df63effd9d2f55e91845956b58119843835f7dd9ed:Paul|';
       const v = new Claim.IdentityName({ attestableValue: aComplexAttestableValue });
@@ -179,53 +190,5 @@ describe('Claim Constructions tests', () => {
     };
     const phone = new Claim(identifier, value);
     expect(phone.value).toEqual(value);
-  });
-
-  describe.skip('MOVE TO UCA LIB: UCAs to Claims', () => {
-    test('Transforming UCA to Claim', () => {
-      const ucaIdentifier = 'cvc:Identity:dateOfBirth';
-      const claimIdentifier = 'claim-cvc:Identity:dateOfBirth-v1';
-      const value = {
-        day: 20,
-        month: 12,
-        year: 1978,
-      };
-
-      const dateOfBirthUCA = new UserCollectableAttribute(ucaIdentifier, value);
-      expect(dateOfBirthUCA).toBeDefined();
-      expect(dateOfBirthUCA.value).toBeDefined();
-      expect(dateOfBirthUCA.value.day).toBeDefined();
-      expect(dateOfBirthUCA.value.day.value).toBe(20);
-
-      // converting UCA to Claim
-      const dateOfBirthClaim = new Claim(claimIdentifier, dateOfBirthUCA.getPlainValue());
-
-      expect(dateOfBirthClaim).toBeDefined();
-      expect(dateOfBirthClaim.value).toBeDefined();
-      expect(dateOfBirthClaim.value.day).toBeDefined();
-      expect(dateOfBirthClaim.value.day.value).toBe(20);
-    });
-
-    test('Transforming alias UCA to Claim', () => {
-      const identifier = 'cvc:Document:evidences';
-      const aliasIdentifier = 'cvc:Validation:evidences';
-      const value = {
-        idDocumentFront: { algorithm: 'sha256', data: 'sha256(idDocumentFront)' },
-        idDocumentBack: { algorithm: 'sha256', data: 'sha256(idDocumentBack)' },
-        selfie: { algorithm: 'sha256', data: 'sha256(selfie)' },
-      };
-
-      const evidencesUCA = new UserCollectableAttribute(identifier, value);
-      const evidencesAliasUCA = new UserCollectableAttribute(aliasIdentifier, value);
-
-      // converting UCAs to Claims
-      const evidencesClaim = new Claim(identifier, evidencesUCA.getPlainValue());
-      const evidencesClaimForAliasUCA = new Claim(aliasIdentifier, evidencesAliasUCA.getPlainValue());
-
-      // should map to the same claim
-      expect(evidencesClaimForAliasUCA.identifier).toEqual(evidencesClaim.identifier);
-      expect(evidencesClaimForAliasUCA.getPlainValue()).toEqual(evidencesClaim.getPlainValue());
-      expect(evidencesClaim.identifier).toBe('claim-cvc:Document.evidences-v1');
-    });
   });
 });

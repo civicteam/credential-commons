@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { Claim } = require('../../src/claim/Claim');
-const VC = require('../../src/creds/VerifiableCredential');
+const VC = require('../../src/creds/VerifiableCredential_old');
 
 jest.setTimeout(200000);
 

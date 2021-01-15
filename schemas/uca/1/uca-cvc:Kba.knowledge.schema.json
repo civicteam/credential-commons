@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/uca-cvc:Kba.knowledge-v1",
+  "title": "uca-cvc:Kba.knowledge-v1",
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string"
+    },
+    "answer": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

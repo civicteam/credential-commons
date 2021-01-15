@@ -438,7 +438,15 @@ const ErrorContextTypes = {
   UCA_ERROR: 'uca_error',
 };
 
+class MissingSchemaError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'MissingSchemaError';
+  }
+}
+
 module.exports = {
+  MissingSchemaError,
   ErrorCodes,
   ErrorContextTypes,
 };

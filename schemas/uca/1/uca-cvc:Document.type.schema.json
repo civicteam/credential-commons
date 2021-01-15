@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://identity.com/schemas/uca-cvc:Document.type-v1",
+  "title": "uca-cvc:Document.type-v1",
+  "type": "string",
+  "enum": [
+    "uk_biometric_residence_permit",
+    "driving_license",
+    "national_identity_card",
+    "passport",
+    "tax_id",
+    "unknown",
+    "voter_id"
+  ]
+}

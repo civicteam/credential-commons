@@ -2,19 +2,15 @@ const _ = require('lodash');
 const fs = require('fs');
 const { v4: uuidv4, v1: uuidv1 } = require('uuid');
 const sjcl = require('sjcl');
-const { Claim, definitions } = require('../../src/claim/Claim');
-const VC = require('../../src/creds/VerifiableCredential');
-const credentialDefinitions = require('../../src/creds/definitions');
-const SchemaGenerator = require('../../src/schemas/generator/SchemaGenerator');
+const { Claim, VerifiableCredential } = require('../../src/entities');
 const MiniCryptoManagerImpl = require('../../src/services/MiniCryptoManagerImpl');
-
-jest.setTimeout(150000);
 
 const XPVT1 = 'xprvA1yULd2DFYnQRVbLiAKrFdftVLsANiC3rqLvp8iiCbnchcWqd6kJPoaV3sy7R6CjHM8RbpoNdWVgiPZLVa1EmneRLtwiitNpWgwyVmjvay7'; // eslint-disable-line
 const XPUB1 = 'xpub6Expk8Z75vLhdyfopBrrcmcd3NhenAuuE4GXcX8KkwKbaQqzAe4Ywbtxu9F95hRHj79PvdtYEJcoR6gesbZ79fS4bLi1PQtm81rjxAHeLL9'; // eslint-disable-line
 
 const identityName = { givenNames: 'Max', otherNames: 'Abc', familyNames: 'Mustermann' };
 const identityDateOfBirth = { day: 20, month: 3, year: 1978 };
+const emailValue = { username: 'max', domain: { name: 'mustermann', tld: 'org' }}
 
 const miniCryptoManager = new MiniCryptoManagerImpl();
 const signAttestationSubject = (subject, xprv, xpub) => {
@@ -34,115 +30,112 @@ const signAttestationSubject = (subject, xprv, xpub) => {
   };
 };
 
-describe('Unit tests for Verifiable Credentials', () => {
-  test('Dont construct undefined Credentials', () => {
-    function createCredential() {
-      const name = new Claim.IdentityName(identityName);
-      const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-      return new VC('cvc:cred:Test', uuidv4(), null, [name, dob], '1');
-    }
-    expect(createCredential).toThrowError('cvc:cred:Test is not defined');
-  });
+const name = () => new Claim('claim-cvc:Identity.name-v1', identityName);
+const dob = new Claim('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
+const email = new Claim('claim-cvc:Contact.email-v1', emailValue)
 
-  test('Dont construct Credentials with wrong version', () => {
-    function createCredential() {
-      const name = new Claim.IdentityName(identityName);
-      const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-      return new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '2');
-    }
-    expect(createCredential).toThrowError('Credential definition for credential-cvc:Identity-v1 v2 not found');
-  });
+describe('Verifiable Credentials', () => {
+  describe('constructor', () => {
+    it('should throw an error if the identifier is malformed', () => {
+      const shouldFail = () => new VerifiableCredential({
+        metadata: {
+          identifier: 'something-malformed',
+        },
+        claims: {},
+      });
+      expect(shouldFail).toThrowError('Invalid identifier');
+    });
 
-  test('New Defined Credentials', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
-    expect(cred).toBeDefined();
-    expect(cred.claim.identity.name.givenNames).toBe('Max');
-    expect(cred.claim.identity.name.otherNames).toBe('Abc');
-    expect(cred.claim.identity.name.familyNames).toBe('Mustermann');
-    expect(cred.claim.identity.dateOfBirth.day).toBe(20);
-    expect(cred.claim.identity.dateOfBirth.month).toBe(3);
-    expect(cred.claim.identity.dateOfBirth.year).toBe(1978);
-    expect(cred.proof.leaves).toHaveLength(8);
-  });
+    it('should fail to construct construct credentials with the wrong version', () => {
+      const shouldFail = () => new VerifiableCredential({
+        metadata: {
+          identifier: 'credential-cvc:IdDocument-v0',
+        },
+        claims: { name, dateOfBirth: dob },
+      });
+      expect(shouldFail).toThrowError('No schema found for credential-cvc:IdDocument-v0');
+    });
 
-  test('should validate new defined credentials with the obligatory Meta:expirationDate UCA with'
-    + ' null value', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
-    expect(cred).toBeDefined();
-    expect(cred.expirationDate).toBeNull();
-  });
+    it('should construct credentials from claims', () => {
+      const credential = new VerifiableCredential({
+        metadata: {
+          identifier: 'credential-cvc:Email-v2',
+        },
+        claims: { email },
+      });
 
-  test('New Expirable Credentials', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), '-1d', [name, dob], '1');
-    expect(cred).toBeDefined();
-    expect(cred.claim.identity.name.givenNames).toBe('Max');
-    expect(cred.claim.identity.name.otherNames).toBe('Abc');
-    expect(cred.claim.identity.name.familyNames).toBe('Mustermann');
-    expect(cred.claim.identity.dateOfBirth.day).toBe(20);
-    expect(cred.claim.identity.dateOfBirth.month).toBe(3);
-    expect(cred.claim.identity.dateOfBirth.year).toBe(1978);
-    expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:issuer' })).toBeDefined();
-    expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:issuanceDate' })).toBeDefined();
-    expect(cred.expirationDate).toBeDefined();
-    expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:expirationDate' })).toBeDefined();
-    expect(cred.proof.leaves).toHaveLength(8);
-  });
+      expect(credential.claims.email.value).toEqual(emailValue);
+    });
 
-  test('New Defined Credentials return the incorrect global Credential Identifier', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
-    expect(cred.getGlobalIdentifier()).toBe('credential-credential-cvc:Identity-v1-1');
-  });
+    describe('proofs', () => {
+      it('should generate a merkle proof', () => {
+        const credential = new VerifiableCredential({
+          metadata: {
+            identifier: 'credential-cvc:Email-v2',
+          },
+          claims: { email },
+        });
+        expect(credential.proof.leaves).toHaveLength(8);
+      });
+    });
 
-  it('should request an anchor for Credential and return an temporary attestation', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), '-1d', [name, dob], '1');
-    return cred.requestAnchor().then((updated) => {
-      expect(updated.proof.anchor.type).toBe('temporary');
-      expect(updated.proof.anchor.value).not.toBeDefined();
-      expect(updated.proof.anchor).toBeDefined();
-      expect(updated.proof.anchor.schema).toBe('dummy-20180201');
-      done();
+    it('should validate new defined credentials with the obligatory Meta:expirationDate UCA with'
+      + ' null value', () => {
+      const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+      expect(cred.expirationDate).toBeNull();
+    });
+
+    it('New Expirable Credentials', () => {
+      const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), '-1d', [name, dob], '1');
+      expect(cred.claim.identity.name.givenNames).toBe('Max');
+      expect(cred.claim.identity.name.otherNames).toBe('Abc');
+      expect(cred.claim.identity.name.familyNames).toBe('Mustermann');
+      expect(cred.claim.identity.dateOfBirth.day).toBe(20);
+      expect(cred.claim.identity.dateOfBirth.month).toBe(3);
+      expect(cred.claim.identity.dateOfBirth.year).toBe(1978);
+      expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:issuer' })).toBeDefined();
+      expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:issuanceDate' })).toBeDefined();
+      expect(cred.expirationDate).toBeDefined();
+      expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:expirationDate' })).toBeDefined();
+      expect(cred.proof.leaves).toHaveLength(8);
+    });
+
+    it('New Defined Credentials return the incorrect global Credential Identifier', () => {
+      const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+      expect(cred.getGlobalIdentifier()).toBe('credential-credential-cvc:Identity-v1-1');
     });
   });
 
+  it('should request an anchor for Credential and return an temporary attestation', async (done) => {
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), '-1d', [name, dob], '1');
+    const updatedAnchor = await cred.requestAnchor();
+    expect(updatedAnchor.proof.anchor.type).toBe('temporary');
+    expect(updatedAnchor.proof.anchor.value).not.toBeDefined();
+    expect(updatedAnchor.proof.anchor.schema).toBe('dummy-20180201');
+  });
+
   it('should refresh an temporary anchoring with an permanent one', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
 
     cred.requestAnchor = jest.fn().mockImplementation(async () => {
       // mock the function or otherwise it would call the server
       const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
-      const mockedVc = VC.fromJSON(JSON.parse(credentialContents));
+      const mockedVc = VerifiableCredential.fromJSON(JSON.parse(credentialContents));
       mockedVc.updateAnchor = jest.fn().mockImplementation(async () => mockedVc);
       return mockedVc;
     });
-    return cred.requestAnchor().then((updated) => {
-      expect(updated.proof.anchor).toBeDefined();
-      return updated.updateAnchor().then((newUpdated) => {
-        expect(newUpdated.proof.anchor.type).toBe('permanent');
-        expect(newUpdated.proof.anchor).toBeDefined();
-        expect(newUpdated.proof.anchor.subject).toBeDefined();
-        done();
-      });
-    });
+
+    const updatedAnchor = await cred.requestAnchor();
+    expect(updatedAnchor.proof.anchor).toBeDefined();
+
+    const newUpdatedAnchor = await cred.requestAnchor();
+    expect(newUpdatedAnchor.proof.anchor.type).toBe('permanent');
+    expect(newUpdatedAnchor.proof.anchor.subject).toBeDefined();
   });
 
-  test('Filter claims from Identity Name', () => {
-    const nameUca = new Claim.IdentityName(identityName);
-
-    const dobUca = new Claim('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
-    const simpleIdentity = new VC('credential-cvc:Identity-v1', 'did:ethr:0xaf9482c84De4e2a961B98176C9f295F9b6008BfD',
-      null, [nameUca, dobUca], '1');
+  it('Filter claims from Identity Name', () => {
+    const simpleIdentity = new VerifiableCredential('credential-cvc:Identity-v1', 'did:ethr:0xaf9482c84De4e2a961B98176C9f295F9b6008BfD',
+      null, [name, dob], '1');
 
     const filtered = simpleIdentity.filter(['claim-cvc:Name.givenNames-v1']);
     expect(filtered.claim.identity.name.givenNames).toBeDefined();
@@ -163,7 +156,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     };
 
     const emailUca = new Claim('claim-cvc:Contact.email-v1', email, '1');
-    const emailCredential = new VC('credential-cvc:Email-v1', '', null, [emailUca], '1');
+    const emailCredential = new VerifiableCredential('credential-cvc:Email-v1', '', null, [emailUca], '1');
     const filtered = emailCredential.filter(['claim-cvc:Contact.email-v1']);
     expect(filtered.claim.contact.email.domain).toBeDefined();
     expect(filtered.claim.contact.email.domain.tld).toBe('oVaPsceZ4C');
@@ -181,7 +174,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     };
 
     const emailUca = new Claim('claim-cvc:Contact.email-v1', email, '1');
-    const emailCredential = new VC('credential-cvc:Email-v1', '', null, [emailUca], '1');
+    const emailCredential = new VerifiableCredential('credential-cvc:Email-v1', '', null, [emailUca], '1');
     const filtered = emailCredential.filter(['claim-cvc:Email.domain-v1']);
 
     expect(filtered.claim.contact.email.domain).toBeDefined();
@@ -191,7 +184,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('Should filter claims for Address asking for claim-cvc:Type.address-v1'
-      + 'and return the claim-cvc:Type.address-v1', () => {
+    + 'and return the claim-cvc:Type.address-v1', () => {
     const value = {
       country: 'X2sEB9F9W9',
       county: 'sDlIM4Rjpo',
@@ -203,7 +196,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     };
 
     const uca = new Claim('claim-cvc:Identity.address-v1', value, '1');
-    const credential = new VC('credential-cvc:Address-v1', '', null, [uca], '1');
+    const credential = new VerifiableCredential('credential-cvc:Address-v1', '', null, [uca], '1');
     const filtered = credential.filter(['claim-cvc:Identity.address-v1']);
 
     expect(filtered.claim.identity.address).toBeDefined();
@@ -227,7 +220,7 @@ describe('Unit tests for Verifiable Credentials', () => {
       };
 
       const uca = new Claim('claim-cvc:Contact.phoneNumber-v1', value, '1');
-      const credential = new VC('credential-cvc:PhoneNumber-v1', '', null, [uca], '1');
+      const credential = new VerifiableCredential('credential-cvc:PhoneNumber-v1', '', null, [uca], '1');
       const filtered = credential.filter(['claim-cvc:Contact.phoneNumber-v1']);
 
       expect(filtered.claim.contact.phoneNumber).toBeDefined();
@@ -244,12 +237,12 @@ describe('Unit tests for Verifiable Credentials', () => {
       const type = new Claim('claim-cvc:Document.type-v1', typeValue, '1');
       const numberValue = '3bj1LUg9yG';
       const number = new Claim('claim-cvc:Document.number-v1', numberValue, '1');
-      const nameValue = {
+      const nameOnDocumentValue = {
         givenNames: 'e8qhs4Iak1',
         familyNames: '4h8sLtEfav',
         otherNames: 'bDTn4stMpX',
       };
-      const name = new Claim('claim-cvc:Document.name-v1', nameValue, '1');
+      const nameOnDocument = new Claim('claim-cvc:Document.name-v1', nameOnDocumentValue, '1');
       const genderValue = 'jFtCBFceQI';
       const gender = new Claim('claim-cvc:Document.gender-v1', genderValue, '1');
       const issueLocationValue = 'OZbhzBU8ng';
@@ -296,8 +289,8 @@ describe('Unit tests for Verifiable Credentials', () => {
         backMD5: '0yr9zkdApo',
       };
       const image = new Claim('cvc:Document:image', imageValue, '1');
-      const credential = new VC(
-        'credential-cvc:GenericDocumentId-v1', '', null, [type, number, name, gender, issueAuthority,
+      const credential = new VerifiableCredential(
+        'credential-cvc:GenericDocumentId-v1', '', null, [type, number, nameOnDocument, gender, issueAuthority,
           issueLocation, issueCountry, placeOfBirth, properties, address, image, dateOfBirth], '1',
       );
       const filtered = credential.filter(['claim-cvc:Identity.dateOfBirth-v1']);
@@ -315,7 +308,7 @@ describe('Unit tests for Verifiable Credentials', () => {
       lineType: 'OaguqgUaR7',
     };
     const uca = new Claim('claim-cvc:Contact.phoneNumber-v1', value, '1');
-    const credential = new VC('credential-cvc:PhoneNumber-v1', '', null, [uca], '1');
+    const credential = new VerifiableCredential('credential-cvc:PhoneNumber-v1', '', null, [uca], '1');
     const filtered = credential.filter(['claim-cvc:PhoneNumber.countryCode-v1']);
 
     expect(filtered.claim.contact.phoneNumber).toBeDefined();
@@ -329,8 +322,8 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('Should create IdDocument-v1 credential', () => {
     const type = new Claim('claim-cvc:Document.type-v1', 'passport', '1');
     const number = new Claim('claim-cvc:Document.number-v1', 'FP12345', '1');
-    const nameValue = { givenNames: 'e8qhs4Iak1', familyNames: 'e8qak1', otherNames: 'qhs4I' };
-    const name = new Claim('claim-cvc:Document.name-v1', nameValue, '1');
+    const nameOnDocumentValue = { givenNames: 'e8qhs4Iak1', familyNames: 'e8qak1', otherNames: 'qhs4I' };
+    const nameOnDocument = new Claim('claim-cvc:Document.name-v1', nameOnDocumentValue, '1');
     const gender = new Claim('claim-cvc:Document.gender-v1', 'M', '1');
     const issueCountry = new Claim('claim-cvc:Document.issueCountry-v1', 'Brazil', '1');
     const placeOfBirth = new Claim('claim-cvc:Document.placeOfBirth-v1', 'Belo Horizonte', '1');
@@ -340,8 +333,8 @@ describe('Unit tests for Verifiable Credentials', () => {
     const dateOfExpiry = new Claim('claim-cvc:Document.dateOfExpiry-v1', dateOfExpiryValue, '1');
     const nationality = new Claim('claim-cvc:Document.nationality-v1', 'Brazilian', '1');
 
-    const credential = new VC(
-      'credential-cvc:IdDocument-v1', '', null, [type, number, name, gender,
+    const credential = new VerifiableCredential(
+      'credential-cvc:IdDocument-v1', '', null, [type, number, nameOnDocument, gender,
         issueCountry, placeOfBirth, dateOfBirth, dateOfExpiry, nationality], '1',
     );
     expect(credential).toBeDefined();
@@ -350,8 +343,8 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('Should create IdDocument-v2 credential', () => {
     const type = new Claim('claim-cvc:Document.type-v1', 'passport', '1');
     const number = new Claim('claim-cvc:Document.number-v1', 'FP12345', '1');
-    const nameValue = { givenNames: 'e8qhs4Iak1', familyNames: 'e8qak1', otherNames: 'qhs4I' };
-    const name = new Claim('claim-cvc:Document.name-v1', nameValue, '1');
+    const nameOnDocumentValue = { givenNames: 'e8qhs4Iak1', familyNames: 'e8qak1', otherNames: 'qhs4I' };
+    const nameOnDocument = new Claim('claim-cvc:Document.name-v1', nameOnDocumentValue, '1');
     const gender = new Claim('claim-cvc:Document.gender-v1', 'M', '1');
     const issueCountry = new Claim('claim-cvc:Document.issueCountry-v1', 'Brazil', '1');
     const placeOfBirth = new Claim('claim-cvc:Document.placeOfBirth-v1', 'Belo Horizonte', '1');
@@ -377,16 +370,16 @@ describe('Unit tests for Verifiable Credentials', () => {
     };
     const evidences = new Claim('claim-cvc:Document.evidences-v1', evidencesValue, '1');
 
-    const credential = new VC(
-      'credential-cvc:IdDocument-v2', '', null, [type, number, name, gender,
+    const credential = new VerifiableCredential(
+      'credential-cvc:IdDocument-v2', '', null, [type, number, nameOnDocument, gender,
         issueCountry, placeOfBirth, dateOfBirth, dateOfExpiry, nationality, evidences], '1',
     );
     expect(credential).toBeDefined();
   });
 
   it('Should create alt:Identity-v1 credential', () => {
-    const nameValue = { givenNames: 'e8qhs4Iak1', familyNames: 'e8qak1', otherNames: 'qhs4I' };
-    const name = new Claim('claim-cvc:Document.name-v1', nameValue, '1');
+    const nameOnDocumentValue = { givenNames: 'e8qhs4Iak1', familyNames: 'e8qak1', otherNames: 'qhs4I' };
+    const nameOnDocument = new Claim('claim-cvc:Document.name-v1', nameOnDocumentValue, '1');
     const dateOfBirthValue = identityDateOfBirth;
     const dateOfBirth = new Claim('claim-cvc:Document.dateOfBirth-v1', dateOfBirthValue, '1');
     const addressValue = {
@@ -400,8 +393,8 @@ describe('Unit tests for Verifiable Credentials', () => {
     };
     const address = new Claim('claim-cvc:Document.address-v1', addressValue, '1');
 
-    const credential = new VC(
-      'credential-alt:Identity-v1', '', null, [name, dateOfBirth, address], '1',
+    const credential = new VerifiableCredential(
+      'credential-alt:Identity-v1', '', null, [nameOnDocument, dateOfBirth, address], '1',
     );
     expect(credential).toBeDefined();
   });
@@ -411,12 +404,12 @@ describe('Unit tests for Verifiable Credentials', () => {
     const type = new Claim('claim-cvc:Document.type-v1', typeValue, '1');
     const numberValue = '3bj1LUg9yG';
     const number = new Claim('claim-cvc:Document.number-v1', numberValue, '1');
-    const nameValue = {
+    const nameOnDocumentValue = {
       givenNames: 'e8qhs4Iak1',
       familyNames: '4h8sLtEfav',
       otherNames: 'bDTn4stMpX',
     };
-    const name = new Claim('claim-cvc:Document.name-v1', nameValue, '1');
+    const nameOnDocument = new Claim('claim-cvc:Document.name-v1', nameOnDocumentValue, '1');
     const genderValue = 'jFtCBFceQI';
     const gender = new Claim('claim-cvc:Document.gender-v1', genderValue, '1');
     const issueLocationValue = 'OZbhzBU8ng';
@@ -463,8 +456,8 @@ describe('Unit tests for Verifiable Credentials', () => {
       backMD5: '0yr9zkdApo',
     };
     const image = new Claim('cvc:Document:image', imageValue, '1');
-    const credential = new VC(
-      'credential-cvc:GenericDocumentId-v1', '', null, [type, number, name, gender, issueAuthority,
+    const credential = new VerifiableCredential(
+      'credential-cvc:GenericDocumentId-v1', '', null, [type, number, nameOnDocument, gender, issueAuthority,
         issueLocation, issueCountry, placeOfBirth, properties, address, image, dateOfBirth], '1',
     );
     const filtered = credential.filter(['claim-cvc:Document.type-v1']);
@@ -474,14 +467,14 @@ describe('Unit tests for Verifiable Credentials', () => {
 
   it('Should verify an VC of type Email', () => {
     const credJSon = require('./fixtures/Email.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).toBeTruthy();
   });
 
   it('Should not verify an VC of with tampered domain Email', () => {
     const credJSon = require('./fixtures/Email.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     cred.claim.contact.email.domain.name = 'civic';
     expect(cred.verifyProofs()).toBeFalsy();
@@ -489,7 +482,7 @@ describe('Unit tests for Verifiable Credentials', () => {
 
   it('Should not verify an VC of with tampered username Email', () => {
     const credJSon = require('./fixtures/Email.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     cred.claim.contact.email.username = 'jpMustermann';
     expect(cred.verifyProofs()).toBeFalsy();
@@ -497,14 +490,14 @@ describe('Unit tests for Verifiable Credentials', () => {
 
   it('Should verify an VC of type Address', () => {
     const credJSon = require('./fixtures/Address.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).toBeTruthy();
   });
 
   it('Should not verify an VC of tampered Address', () => {
     const credJSon = require('./fixtures/Address.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     cred.claim.identity.address.city = 'Rio de Janeiro';
     expect(cred.verifyProofs()).toBeFalsy();
@@ -512,21 +505,21 @@ describe('Unit tests for Verifiable Credentials', () => {
 
   it('Should verify an VC of type Identity', () => {
     const credJSon = require('./fixtures/Identity.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).toBeTruthy();
   });
 
-  it('Should verify an VC of type GenericDocumentId and doing VC.fromJSON', () => {
+  it('Should verify an VC of type GenericDocumentId and doing VerifiableCredential.fromJSON', () => {
     const credJSon = require('./fixtures/GenericDocumentId.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).toBeTruthy();
   });
 
   it('Should not verify an VC of tampered GenericDocumentId', () => {
     const credJSon = require('./fixtures/GenericDocumentId.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     cred.claim.document.dateOfBirth.day = 20;
     cred.claim.document.dateOfBirth.year = 1900;
@@ -548,7 +541,7 @@ describe('Unit tests for Verifiable Credentials', () => {
       const dependentUca = new Claim(ucaDefinition.identifier, value, ucaDefinition.version);
       ucaArray.push(dependentUca);
     });
-    const credential = new VC(credentialDefinition.identifier, 'did:ethr:0xaf9482c84De4e2a961B98176C9f295F9b6008BfD',
+    const credential = new VerifiableCredential(credentialDefinition.identifier, 'did:ethr:0xaf9482c84De4e2a961B98176C9f295F9b6008BfD',
       null, ucaArray, 1);
     expect(credential).toBeDefined();
     expect(credential.verifyProofs()).toBeTruthy();
@@ -556,15 +549,15 @@ describe('Unit tests for Verifiable Credentials', () => {
 
   it('Should verify an VC of type PhoneNumber', () => {
     const credJSon = require('./fixtures/PhoneNumber.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).toBeTruthy();
   });
 
-  test('cred.verify(): with a valid cred without expirationDate, should return at least'
+  it('cred.verify(): with a valid cred without expirationDate, should return at least'
     + ' VERIFY_LEVELS.PROOFS level', () => {
     const credJSon = require('./fixtures/Cred1.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verify()).toBeGreaterThanOrEqual(VC.VERIFY_LEVELS.PROOFS);
   });
@@ -591,14 +584,14 @@ describe('Unit tests for Verifiable Credentials', () => {
     };
 
     const uca = new Claim('claim-cvc:Contact.phoneNumber-v1', value, '1');
-    const credential = new VC('credential-cvc:PhoneNumber-v1', '', null, [uca], '1');
+    const credential = new VerifiableCredential('credential-cvc:PhoneNumber-v1', '', null, [uca], '1');
     const isValid = VC.nonCryptographicallySecureVerify(credential);
     expect(isValid).toBeTruthy();
   });
 
   it('Should verify an VC with cryptographic security', async (done) => {
     const credJSon = require('./fixtures/PhoneNumber.json'); // eslint-disable-line
-    const credential = VC.fromJSON(credJSon);
+    const credential = VerifiableCredential.fromJSON(credJSon);
 
     let isValid = await VC.cryptographicallySecureVerify(credential);
     expect(isValid).toBeTruthy();
@@ -616,7 +609,7 @@ describe('Unit tests for Verifiable Credentials', () => {
 
   it('Should return false if attestation or signature check fail on cryptographic verification', async (done) => {
     const credJSon = require('./fixtures/PhoneNumber.json'); // eslint-disable-line
-    const credential = VC.fromJSON(credJSon);
+    const credential = VerifiableCredential.fromJSON(credJSon);
 
     let verifyAttestationFunc = () => false;
     let isValid = await VC.cryptographicallySecureVerify(credential, verifyAttestationFunc);
@@ -630,11 +623,11 @@ describe('Unit tests for Verifiable Credentials', () => {
     done();
   });
 
-  test('cred.verify(): VERIFY_LEVELS.PROOFS without expirationDate INVALID', () => {
+  it('cred.verify(): VERIFY_LEVELS.PROOFS without expirationDate INVALID', () => {
     const credJSon = require('./fixtures/Cred1.json'); // eslint-disable-line
     // messing up with the targetHash:
     credJSon.proof.leaves[0].targetHash = credJSon.proof.leaves[0].targetHash.replace('a', 'b');
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verify()).toEqual(VC.VERIFY_LEVELS.INVALID);
   });
@@ -643,21 +636,21 @@ describe('Unit tests for Verifiable Credentials', () => {
     const credJSon = require('./fixtures/Cred1.json'); // eslint-disable-line
     // messing up with the targetHash:
     credJSon.proof.leaves[0].targetHash = credJSon.proof.leaves[0].targetHash.replace('a', 'b');
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).toBeFalsy();
   });
 
-  test('cred.verifyProofs(): with a valid cred with expirationDate, should return TRUE', () => {
+  it('cred.verifyProofs(): with a valid cred with expirationDate, should return TRUE', () => {
     const credJSon = require('./fixtures/CredWithFutureExpiry.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).toBeTruthy();
   });
 
-  test('cred.verifyProofs(): with a valid cred but expired, should return FALSE', () => {
+  it('cred.verifyProofs(): with a valid cred but expired, should return FALSE', () => {
     const credJSon = require('./fixtures/CredExpired.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).not.toBeTruthy();
   });
@@ -665,14 +658,14 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should fail verification since the leaf value is tampered', () => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCWithTamperedLeafValue.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     expect(cred.verifyProofs()).not.toBeTruthy();
   });
 
   it('should check that signature matches for the root of the Merkle Tree', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     expect(cred).toBeDefined();
     expect(cred.proof.anchor).toBeDefined();
     expect(await cred.verifySignature()).toBeTruthy();
@@ -682,7 +675,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should check that signature matches for the root of the Merkle Tree using a pinned key', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     expect(cred).toBeDefined();
     expect(cred.proof.anchor).toBeDefined();
     expect(await cred.verifySignature(XPUB1)).toBeTruthy();
@@ -692,7 +685,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should fail to check that signature using a bad pinned key', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     expect(cred).toBeDefined();
     expect(cred.proof.anchor).toBeDefined();
     expect(() => cred.verifySignature(XPUB1.replace('9', '6'))).toThrow();
@@ -702,7 +695,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should tamper the root of Merkle and the signature should not match', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     // tamper merkle root
     cred.proof.merkleRoot = 'gfdagfagfda';
     expect(cred).toBeDefined();
@@ -712,9 +705,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should have a empty "granted" field just after construct a VC', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
 
     expect(cred).toBeDefined();
     expect(cred.granted).toBeNull();
@@ -725,7 +716,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should have a empty "granted" field just after construct a VC from a JSON', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     expect(cred).toBeDefined();
     expect(cred.granted).toBeNull();
 
@@ -733,9 +724,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should throw exception id ".grantUsageFor()" request without proper ".requestAnchor()" first', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
 
     expect(cred).toBeDefined();
     expect(cred.granted).toBeNull();
@@ -751,9 +740,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should have a filled "granted" field after ".grantUsageFor()" request', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     await cred.requestAnchor();
     expect(cred).toBeDefined();
     expect(cred.granted).toBeNull();
@@ -768,7 +755,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should have a filled "granted" field after ".grantUsageFor()" request (fromJSON test)', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     expect(cred).toBeDefined();
     expect(cred.granted).toBeNull();
     cred.proof.anchor.subject = signAttestationSubject(cred.proof.anchor.subject, XPVT1, XPUB1);
@@ -780,15 +767,13 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should verifyGrant() accordingly', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     const anchoredCred = await cred.requestAnchor();
     expect(anchoredCred).toBeDefined();
     expect(anchoredCred.granted).toBeNull();
 
     const subject = signAttestationSubject(anchoredCred.proof.anchor.subject, XPVT1, XPUB1);
-    const signedCred = VC.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
+    const signedCred = VerifiableCredential.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
 
     const requestorId = 'ANY_REQUESTOR_ID_12345';
     const requestId = new Date().getTime(); // simulate an nonce ID
@@ -799,7 +784,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     expect(transmittedCred).toBeDefined();
 
     // <wire transferred>
-    const receivedCred = VC.fromJSON(JSON.parse(transmittedCred));
+    const receivedCred = VerifiableCredential.fromJSON(JSON.parse(transmittedCred));
     expect(receivedCred.granted).not.toBeNull();
 
     const verifyGrant = receivedCred.verifyGrant(requestorId, requestId);
@@ -809,15 +794,13 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should fail verifyGrant() with a invalid "granted" token', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     const anchoredCred = await cred.requestAnchor();
     expect(anchoredCred).toBeDefined();
     expect(anchoredCred.granted).toBeNull();
 
     const subject = signAttestationSubject(anchoredCred.proof.anchor.subject, XPVT1, XPUB1);
-    const signedCred = VC.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
+    const signedCred = VerifiableCredential.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
 
     const requestorId = 'ANY_REQUESTOR_ID_12345';
     const requestId = new Date().getTime(); // simulate an nonce ID
@@ -828,7 +811,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     expect(transmittedCred).toBeDefined();
 
     // <wire transferred>
-    const receivedCred = VC.fromJSON(JSON.parse(transmittedCred));
+    const receivedCred = VerifiableCredential.fromJSON(JSON.parse(transmittedCred));
     expect(receivedCred.granted).not.toBeNull();
 
     // Simulate a invalid granted token - one not based on the same nonce
@@ -842,15 +825,13 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should verify a granted credential json with requesterGrantVerify', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     const anchoredCred = await cred.requestAnchor();
     expect(anchoredCred).toBeDefined();
     expect(anchoredCred.granted).toBeNull();
 
     const subject = signAttestationSubject(anchoredCred.proof.anchor.subject, XPVT1, XPUB1);
-    const signedCred = VC.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
+    const signedCred = VerifiableCredential.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
 
     const requestorId = 'ANY_REQUESTOR_ID_12345';
     const requestId = new Date().getTime(); // simulate an nonce ID
@@ -870,15 +851,13 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should fail to verify a credential json with invalid granted token with requesterGrantVerify', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     const anchoredCred = await cred.requestAnchor();
     expect(anchoredCred).toBeDefined();
     expect(anchoredCred.granted).toBeNull();
 
     const subject = signAttestationSubject(anchoredCred.proof.anchor.subject, XPVT1, XPUB1);
-    const signedCred = VC.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
+    const signedCred = VerifiableCredential.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
 
     const requestorId = 'ANY_REQUESTOR_ID_12345';
     const requestId = new Date().getTime(); // simulate an nonce ID
@@ -902,15 +881,13 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should verify() with maximum level of GRANTED', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     const anchoredCred = await cred.requestAnchor();
     expect(anchoredCred).toBeDefined();
     expect(anchoredCred.granted).toBeNull();
 
     const subject = signAttestationSubject(anchoredCred.proof.anchor.subject, XPVT1, XPUB1);
-    const signedCred = VC.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
+    const signedCred = VerifiableCredential.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
 
     const requestorId = 'ANY_REQUESTOR_ID_12345';
     const requestId = new Date().getTime(); // simulate an nonce ID
@@ -921,7 +898,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     expect(transmittedCred).toBeDefined();
 
     // <wire transferred>
-    const receivedCred = VC.fromJSON(JSON.parse(transmittedCred));
+    const receivedCred = VerifiableCredential.fromJSON(JSON.parse(transmittedCred));
     expect(receivedCred.granted).not.toBeNull();
 
     const verifyLevel = receivedCred.verify(VC.VERIFY_LEVELS.GRANTED, { requestorId, requestId });
@@ -931,15 +908,13 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should fail verify() with maximum level of GRANTED if granted is invalid', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     const anchoredCred = await cred.requestAnchor();
     expect(anchoredCred).toBeDefined();
     expect(anchoredCred.granted).toBeNull();
 
     const subject = signAttestationSubject(anchoredCred.proof.anchor.subject, XPVT1, XPUB1);
-    const signedCred = VC.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
+    const signedCred = VerifiableCredential.fromJSON(_.merge({}, anchoredCred, { proof: { anchor: { subject } } }));
 
     const requestorId = 'ANY_REQUESTOR_ID_12345';
     const requestId = new Date().getTime(); // simulate an nonce ID
@@ -950,7 +925,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     expect(transmittedCred).toBeDefined();
 
     // <wire transferred>
-    const receivedCred = VC.fromJSON(JSON.parse(transmittedCred));
+    const receivedCred = VerifiableCredential.fromJSON(JSON.parse(transmittedCred));
     expect(receivedCred.granted).not.toBeNull();
 
     // Simulate a invalid granted token - one not based on the same nonce
@@ -966,7 +941,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should check that the anchor exists on the chain', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     expect(cred).toBeDefined();
     expect(cred.proof.anchor).toBeDefined();
     const validation = await cred.verifyAttestation();
@@ -977,7 +952,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should fail the check that the anchor exists on the chain', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCTempAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
 
     cred.proof.anchor.network = 'mainnet';
 
@@ -989,7 +964,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should fail the check with temporary attestations faked as permanent', async () => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/CredentialAttestationFaked.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
 
     cred.proof.anchor.network = 'mainnet';
 
@@ -998,9 +973,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('should revoke the permanent anchor and succeed verification', async (done) => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     await cred.requestAnchor();
     await cred.updateAnchor();
     const validation = await cred.verifyAttestation();
@@ -1014,7 +987,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('should check an unrevoked attestation and validate that is not revoked', async (done) => {
     const credentialContents = fs.readFileSync('__test__/creds/fixtures/VCPermanentAnchor.json', 'utf8');
     const credentialJson = JSON.parse(credentialContents);
-    const cred = VC.fromJSON(credentialJson);
+    const cred = VerifiableCredential.fromJSON(credentialJson);
     expect(cred).toBeDefined();
     expect(cred.proof.anchor).toBeDefined();
     const isRevoked = await cred.isRevoked();
@@ -1023,9 +996,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('Should match with one constraint', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     expect(cred.isMatch({
       claims: [
         { path: 'identity.name.givenNames', is: { $eq: 'Max' } },
@@ -1034,9 +1005,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('Should match with two constraints', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     expect(cred.isMatch({
       claims: [
         { path: 'identity.name.givenNames', is: { $eq: 'Max' } },
@@ -1046,9 +1015,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('Should fail with two constraints if one of them fails', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     expect(cred.isMatch({
       claims: [
         { path: 'identity.name.givenNames', is: { $eq: 'NOT MAX' } },
@@ -1058,9 +1025,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('Should match with gt constraint', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     expect(cred.isMatch({
       claims: [
         { path: 'identity.dateOfBirth.year', is: { $gt: 1900 } },
@@ -1069,9 +1034,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('Should match constraints targeting the parent properties of dates', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     expect(cred.isMatch({
       claims: [
         { path: 'identity.dateOfBirth', is: { $lt: 1554377905342 } }, // 4-4-2019
@@ -1093,9 +1056,9 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('Should match constraints targeting the parent properties and string deltas', () => {
     const exactlyFortyYearsAgo = getExactYearsAgo(40);
     const dob = dateToDOBClaim(exactlyFortyYearsAgo);
-    const name = new Claim.IdentityName(identityName);
+    const name = nameClaim();
 
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     expect(cred.isMatch({
       claims: [
         { path: 'identity.dateOfBirth', is: { $lte: '-40y' } },
@@ -1104,9 +1067,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   });
 
   it('Should not match', () => {
-    const name = new Claim.IdentityName(identityName);
-    const dob = new Claim.IdentityDateOfBirth(identityDateOfBirth);
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     expect(cred.isMatch({
       claims: [
         { path: 'identity.name.first', is: { $eq: 'Maxime' } },
@@ -1368,7 +1329,7 @@ describe('Unit tests for Verifiable Credentials', () => {
         const dependentUca = new Claim(ucaDefinition.identifier, value, ucaDefinition.version);
         ucaArray.push(dependentUca);
       });
-      const credential = new VC(credentialDefinition.identifier, `jest:test:${uuidv1()}`, null, ucaArray, 1);
+      const credential = new VerifiableCredential(credentialDefinition.identifier, `jest:test:${uuidv1()}`, null, ucaArray, 1);
 
       await credential.requestAnchor();
       await credential.updateAnchor();
@@ -1390,7 +1351,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('Should construct a VC with no evidence provided', () => {
     const name = new Claim.IdentityName({ givenNames: 'Neymar', otherNames: 'Jr', familyNames: 'Mustermann' });
     const dob = new Claim.IdentityDateOfBirth({ day: 5, month: 2, year: 1992 });
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
     expect(cred).toBeDefined();
   });
 
@@ -1405,7 +1366,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     };
     const name = new Claim.IdentityName({ givenNames: 'Neymar', otherNames: 'Jr', familyNames: 'Mustermann' });
     const dob = new Claim.IdentityDateOfBirth({ day: 5, month: 2, year: 1992 });
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
     expect(cred.evidence).toBeDefined();
     expect(cred.evidence).toEqual([evidence]);
   });
@@ -1431,7 +1392,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     ];
     const name = new Claim.IdentityName({ givenNames: 'Neymar', otherNames: 'Jr', familyNames: 'Mustermann' });
     const dob = new Claim.IdentityDateOfBirth({ day: 5, month: 2, year: 1992 });
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
     expect(cred.evidence).toBeDefined();
     expect(cred.evidence).toEqual(evidence);
   });
@@ -1450,7 +1411,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     ];
     const name = new Claim.IdentityName({ givenNames: 'Neymar', otherNames: 'Jr', familyNames: 'Mustermann' });
     const dob = new Claim.IdentityDateOfBirth({ day: 5, month: 2, year: 1992 });
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
     expect(cred.evidence).toBeDefined();
     expect(cred.evidence.other).not.toBeDefined();
   });
@@ -1467,7 +1428,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     ];
     const name = new Claim.IdentityName({ givenNames: 'Neymar', otherNames: 'Jr', familyNames: 'Mustermann' });
     const dob = new Claim.IdentityDateOfBirth({ day: 5, month: 2, year: 1992 });
-    const cred = new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
+    const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
     expect(cred.evidence).toBeDefined();
     expect(cred.evidence).toEqual(evidence);
   });
@@ -1485,7 +1446,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     function createCredential() {
       const name = new Claim.IdentityName({ givenNames: 'Neymar', otherNames: 'Jr', familyNames: 'Mustermann' });
       const dob = new Claim.IdentityDateOfBirth({ day: 5, month: 2, year: 1992 });
-      return new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
+      return new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
     }
     expect(createCredential).toThrowError('Evidence type is required');
   });
@@ -1504,7 +1465,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     function createCredential() {
       const name = new Claim.IdentityName({ givenNames: 'Neymar', otherNames: 'Jr', familyNames: 'Mustermann' });
       const dob = new Claim.IdentityDateOfBirth({ day: 5, month: 2, year: 1992 });
-      return new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
+      return new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
     }
     expect(createCredential).toThrowError('Evidence id is not a valid URL');
   });
@@ -1523,7 +1484,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     function createCredential() {
       const name = new Claim.IdentityName({ givenNames: 'Neymar', otherNames: 'Jr', familyNames: 'Mustermann' });
       const dob = new Claim.IdentityDateOfBirth({ day: 5, month: 2, year: 1992 });
-      return new VC('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
+      return new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1', evidence);
     }
     expect(createCredential).toThrowError('Evidence type is not an Array object');
   });
@@ -1558,7 +1519,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     const ucas = [
       type, number, name, gender, issueCountry, placeOfBirth, dateOfBirth, nationality, dateOfExpiry, evidences,
     ];
-    const credential = new VC('credential-cvc:IdDocument-v1', '', null, ucas, '1');
+    const credential = new VerifiableCredential('credential-cvc:IdDocument-v1', '', null, ucas, '1');
     expect(credential).toBeDefined();
   });
 
@@ -1570,7 +1531,7 @@ describe('Unit tests for Verifiable Credentials', () => {
     const dateOfBirth = new Claim('claim-cvc:Document.dateOfBirth-v1', dateOfBirthValue, '1');
 
     const ucas = [type, name, issueCountry, dateOfBirth];
-    const credential = new VC('credential-cvc:IdDocument-v1', '', null, ucas, '1');
+    const credential = new VerifiableCredential('credential-cvc:IdDocument-v1', '', null, ucas, '1');
     expect(credential).toBeDefined();
   });
 
@@ -1581,17 +1542,17 @@ describe('Unit tests for Verifiable Credentials', () => {
 
     const ucas = [type, name, issueCountry];
     expect(() => {
-      new VC('credential-cvc:IdDocument-v1', '', null, ucas, '1'); // eslint-disable-line no-new
+      new VerifiableCredential('credential-cvc:IdDocument-v1', '', null, ucas, '1'); // eslint-disable-line no-new
     }).toThrowError('Missing required claim(s): claim-cvc:Document.dateOfBirth-v1');
 
     expect(() => {
-      new VC('credential-cvc:IdDocument-v2', '', null, ucas, '1'); // eslint-disable-line no-new
+      new VerifiableCredential('credential-cvc:IdDocument-v2', '', null, ucas, '1'); // eslint-disable-line no-new
     }).toThrowError('Missing required claim(s): claim-cvc:Document.dateOfBirth-v1, claim-cvc:Document.evidences-v1');
   });
 
   it('Should verify a VC without non-required claims', () => {
     const credJSon = require('./fixtures/IdDocumentWithoutNonRequiredClaims.json'); // eslint-disable-line
-    const cred = VC.fromJSON(credJSon);
+    const cred = VerifiableCredential.fromJSON(credJSon);
     expect(cred).toBeDefined();
     expect(cred.verifyProofs()).toBeTruthy();
   });
@@ -1599,7 +1560,7 @@ describe('Unit tests for Verifiable Credentials', () => {
   it('Should throw exception when creating a VC from json without required claims', () => {
     const credJSon = require('./fixtures/IdDocumentWithoutRequiredClaims.json'); // eslint-disable-line
     expect(() => {
-      VC.fromJSON(credJSon);
+      VerifiableCredential.fromJSON(credJSon);
     }).toThrow();
   });
 });
@@ -1617,7 +1578,7 @@ describe('Transient Credential Tests', () => {
     };
 
     const uca = new Claim('claim-cvc:Identity.address-v1', value, '1');
-    const credential = new VC('credential-cvc:UnverifiedAddress-v1', '', null, [uca], '1');
+    const credential = new VerifiableCredential('credential-cvc:UnverifiedAddress-v1', '', null, [uca], '1');
 
     expect(credential).toBeDefined();
     expect(credential.transient).toBeTruthy();
@@ -1642,7 +1603,7 @@ describe('Transient Credential Tests', () => {
     };
 
     const uca = new Claim('claim-cvc:SocialSecurity.number-v1', value, '1');
-    const credential = new VC('credential-cvc:UnverifiedSsn-v1', '', null, [uca], '1');
+    const credential = new VerifiableCredential('credential-cvc:UnverifiedSsn-v1', '', null, [uca], '1');
 
     expect(credential).toBeDefined();
     expect(credential.transient).toBeTruthy();
