@@ -1,3 +1,4 @@
+const { initialize } = require('../../src');
 const { Claim } = require('../../src/entities/Claim');
 
 const nameClaimData = {
@@ -7,16 +8,27 @@ const nameClaimData = {
 };
 
 describe('Claim Constructions tests', () => {
+  // preload all the schemas
+  beforeAll(initialize);
+
   test('unrecognised claim construction should fail', () => {
     const shouldThrow = () => new Claim('name.first', nameClaimData.givenNames);
 
     expect(shouldThrow).toThrowError('Invalid identifier name.first');
   });
 
-  test('subclaim construction should succeed', () => {
+  test('subclaim construction should succeed with a type reference', () => {
     const identifier = 'claim-cvc:Identity.name.givenNames-v1';
     const v = new Claim(identifier, nameClaimData.givenNames);
     expect(v.value).toEqual(nameClaimData.givenNames);
+    expect(v.identifier).toEqual(identifier);
+    expect(v.version).toEqual('1');
+  });
+
+  test('subclaim construction should succeed without a type reference', () => {
+    const identifier = 'claim-cvc:Contact.phoneNumber.countryCode-v1';
+    const v = new Claim(identifier, 'DE');
+    expect(v.value).toEqual('DE');
     expect(v.identifier).toEqual(identifier);
     expect(v.version).toEqual('1');
   });

@@ -1,13 +1,13 @@
 const { ParsedIdentifier } = require('./ParsedIdentifier');
-const DEFAULT_BUILDER = require('../schema/loader/jsonSchemaLoader');
+const DEFAULT_BUILDER = require('../schema/jsonSchema');
 
 class AttestableEntity {
   get identifier() {
     return this.parsedIdentifier.identifier;
   }
 
-  constructor(identifier, value, builder = DEFAULT_BUILDER) {
-    this.parsedIdentifier = new ParsedIdentifier(identifier, builder);
+  constructor(identifier, value, uriPrefix, builder = DEFAULT_BUILDER) {
+    this.parsedIdentifier = new ParsedIdentifier(identifier, uriPrefix, builder);
 
     const { schemaInformation } = this.parsedIdentifier;
 

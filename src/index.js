@@ -4,8 +4,9 @@ const { initServices, services } = require('./services/index');
 const isValidGlobalIdentifier = require('./isValidGlobalIdentifier');
 const errors = require('./errors');
 const constants = require('./constants');
+const schema = require('./schema/jsonSchema');
 
-module.exports = {
+const credentialCommons = {
   Claim,
   Identifier,
   AttestableEntity,
@@ -15,4 +16,8 @@ module.exports = {
   services,
   errors,
   constants,
+};
+
+module.exports = {
+  initialize: () => schema.initialize().then(() => credentialCommons),
 };

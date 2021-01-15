@@ -2,6 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const { v4: uuidv4, v1: uuidv1 } = require('uuid');
 const sjcl = require('sjcl');
+const { initialize } = require('../../src');
 const { Claim, VerifiableCredential } = require('../../src/entities');
 const MiniCryptoManagerImpl = require('../../src/services/MiniCryptoManagerImpl');
 
@@ -10,7 +11,7 @@ const XPUB1 = 'xpub6Expk8Z75vLhdyfopBrrcmcd3NhenAuuE4GXcX8KkwKbaQqzAe4Ywbtxu9F95
 
 const identityName = { givenNames: 'Max', otherNames: 'Abc', familyNames: 'Mustermann' };
 const identityDateOfBirth = { day: 20, month: 3, year: 1978 };
-const emailValue = { username: 'max', domain: { name: 'mustermann', tld: 'org' }}
+const emailValue = { username: 'max', domain: { name: 'mustermann', tld: 'org' } };
 
 const miniCryptoManager = new MiniCryptoManagerImpl();
 const signAttestationSubject = (subject, xprv, xpub) => {
@@ -30,11 +31,19 @@ const signAttestationSubject = (subject, xprv, xpub) => {
   };
 };
 
-const name = () => new Claim('claim-cvc:Identity.name-v1', identityName);
-const dob = new Claim('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
-const email = new Claim('claim-cvc:Contact.email-v1', emailValue)
+let name;
+let dob;
+let email;
 
 describe('Verifiable Credentials', () => {
+  // preload all the schemas
+  beforeAll(async () => {
+    await initialize();
+    name = () => new Claim('claim-cvc:Identity.name-v1', identityName);
+    dob = new Claim('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
+    email = new Claim('claim-cvc:Contact.email-v1', emailValue);
+  });
+
   describe('constructor', () => {
     it('should throw an error if the identifier is malformed', () => {
       const shouldFail = () => new VerifiableCredential({
@@ -53,7 +62,17 @@ describe('Verifiable Credentials', () => {
         },
         claims: { name, dateOfBirth: dob },
       });
-      expect(shouldFail).toThrowError('No schema found for credential-cvc:IdDocument-v0');
+      expect(shouldFail).toThrowError('No schema found for http://identity.com/schemas/credential-cvc:IdDocument-v0');
+    });
+
+    it('should fail to construct construct credentials if a required claim is missing', () => {
+      const shouldFail = () => new VerifiableCredential({
+        metadata: {
+          identifier: 'credential-alt:Identity-v2',
+        },
+        claims: { name, dateOfBirth: dob },
+      });
+      expect(shouldFail).toThrow(/should have required property 'address'/);
     });
 
     it('should construct credentials from claims', () => {
@@ -66,43 +85,17 @@ describe('Verifiable Credentials', () => {
 
       expect(credential.claims.email.value).toEqual(emailValue);
     });
+  });
 
-    describe('proofs', () => {
-      it('should generate a merkle proof', () => {
-        const credential = new VerifiableCredential({
-          metadata: {
-            identifier: 'credential-cvc:Email-v2',
-          },
-          claims: { email },
-        });
-        expect(credential.proof.leaves).toHaveLength(8);
+  describe('proofs', () => {
+    it('should generate a merkle proof', () => {
+      const credential = new VerifiableCredential({
+        metadata: {
+          identifier: 'credential-cvc:Email-v2',
+        },
+        claims: { email },
       });
-    });
-
-    it('should validate new defined credentials with the obligatory Meta:expirationDate UCA with'
-      + ' null value', () => {
-      const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
-      expect(cred.expirationDate).toBeNull();
-    });
-
-    it('New Expirable Credentials', () => {
-      const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), '-1d', [name, dob], '1');
-      expect(cred.claim.identity.name.givenNames).toBe('Max');
-      expect(cred.claim.identity.name.otherNames).toBe('Abc');
-      expect(cred.claim.identity.name.familyNames).toBe('Mustermann');
-      expect(cred.claim.identity.dateOfBirth.day).toBe(20);
-      expect(cred.claim.identity.dateOfBirth.month).toBe(3);
-      expect(cred.claim.identity.dateOfBirth.year).toBe(1978);
-      expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:issuer' })).toBeDefined();
-      expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:issuanceDate' })).toBeDefined();
-      expect(cred.expirationDate).toBeDefined();
-      expect(_.find(cred.proof.leaves, { identifier: 'cvc:Meta:expirationDate' })).toBeDefined();
-      expect(cred.proof.leaves).toHaveLength(8);
-    });
-
-    it('New Defined Credentials return the incorrect global Credential Identifier', () => {
-      const cred = new VerifiableCredential('credential-cvc:Identity-v1', uuidv4(), null, [name, dob], '1');
-      expect(cred.getGlobalIdentifier()).toBe('credential-credential-cvc:Identity-v1-1');
+      expect(credential.proof.leaves).toHaveLength(8);
     });
   });
 
@@ -327,8 +320,7 @@ describe('Verifiable Credentials', () => {
     const gender = new Claim('claim-cvc:Document.gender-v1', 'M', '1');
     const issueCountry = new Claim('claim-cvc:Document.issueCountry-v1', 'Brazil', '1');
     const placeOfBirth = new Claim('claim-cvc:Document.placeOfBirth-v1', 'Belo Horizonte', '1');
-    const dateOfBirthValue = identityDateOfBirth;
-    const dateOfBirth = new Claim('claim-cvc:Document.dateOfBirth-v1', dateOfBirthValue, '1');
+    const dateOfBirth = new Claim('claim-cvc:Document.dateOfBirth-v1', identityDateOfBirth, '1');
     const dateOfExpiryValue = { day: 12, month: 2, year: 2025 };
     const dateOfExpiry = new Claim('claim-cvc:Document.dateOfExpiry-v1', dateOfExpiryValue, '1');
     const nationality = new Claim('claim-cvc:Document.nationality-v1', 'Brazilian', '1');
@@ -348,8 +340,7 @@ describe('Verifiable Credentials', () => {
     const gender = new Claim('claim-cvc:Document.gender-v1', 'M', '1');
     const issueCountry = new Claim('claim-cvc:Document.issueCountry-v1', 'Brazil', '1');
     const placeOfBirth = new Claim('claim-cvc:Document.placeOfBirth-v1', 'Belo Horizonte', '1');
-    const dateOfBirthValue = identityDateOfBirth;
-    const dateOfBirth = new Claim('claim-cvc:Document.dateOfBirth-v1', dateOfBirthValue, '1');
+    const dateOfBirth = new Claim('claim-cvc:Document.dateOfBirth-v1', identityDateOfBirth, '1');
     const dateOfExpiryValue = { day: 12, month: 2, year: 2025 };
     const dateOfExpiry = new Claim('claim-cvc:Document.dateOfExpiry-v1', dateOfExpiryValue, '1');
     const nationality = new Claim('claim-cvc:Document.nationality-v1', 'Brazilian', '1');
@@ -380,8 +371,7 @@ describe('Verifiable Credentials', () => {
   it('Should create alt:Identity-v1 credential', () => {
     const nameOnDocumentValue = { givenNames: 'e8qhs4Iak1', familyNames: 'e8qak1', otherNames: 'qhs4I' };
     const nameOnDocument = new Claim('claim-cvc:Document.name-v1', nameOnDocumentValue, '1');
-    const dateOfBirthValue = identityDateOfBirth;
-    const dateOfBirth = new Claim('claim-cvc:Document.dateOfBirth-v1', dateOfBirthValue, '1');
+    const dateOfBirth = new Claim('claim-cvc:Document.dateOfBirth-v1', identityDateOfBirth, '1');
     const addressValue = {
       country: 'IH4aiXuEoo',
       county: 'akKjaQehNK',

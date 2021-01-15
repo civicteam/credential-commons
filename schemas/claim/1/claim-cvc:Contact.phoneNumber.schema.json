@@ -3,5 +3,23 @@
   "$id": "http://identity.com/schemas/claim-cvc:Contact.phoneNumber-v1",
   "title": "claim-cvc:Contact.phoneNumber-v1",
   "type": "object",
-  "allOf": [{"$ref": "http://identity.com/schemas/type-cvc:PhoneNumber-v1#/definitions/phoneNumber"}]
+  "required": ["country", "countryCode", "number", "lineType"],
+  "properties": {
+    "country": {
+      "type": "string"
+    },
+    "countryCode": {
+      "type": "string"
+    },
+    "number": {
+      "type": "string"
+    },
+    "extension": {
+      "type": "string"
+    },
+    "lineType": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
 }

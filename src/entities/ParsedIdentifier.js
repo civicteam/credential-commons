@@ -1,7 +1,7 @@
-const DEFAULT_BUILDER = require('../schema/loader/jsonSchemaLoader');
+const DEFAULT_BUILDER = require('../schema/jsonSchema');
+const { parseIdentifier } = require('../lib/stringUtils');
 
-// eslint-disable-next-line no-useless-escape
-const validIdentifier = (identifier) => identifier.match(/(claim|credential|uca)-\w+:[\w\.]+-v\d+/);
+const DEFAULT_URI = 'http://identity.com/schemas/';
 
 class ParsedIdentifier {
   // The original form of the identifier
@@ -9,15 +9,20 @@ class ParsedIdentifier {
     return `${this.type}-${this.name}-v${this.version}`;
   }
 
-  constructor(identifier, builder = DEFAULT_BUILDER) {
-    if (!validIdentifier(identifier)) throw new Error(`Invalid identifier ${identifier}`);
-
-    const [type, name, versionString] = identifier.split('-');
+  constructor(identifier, uriPrefix = DEFAULT_URI, builder = DEFAULT_BUILDER) {
+    const components = parseIdentifier(identifier);
+    if (!components) throw new Error(`Invalid identifier ${identifier}`);
+    const [, type, name, version] = components;
 
     this.type = type;
     this.name = name;
-    this.version = versionString.replace(/^v/, ''); // remove the 'v' from the version
-    this.schemaInformation = builder.loadSchemaObject(this);
+    this.version = version;
+    this.schemaInformation = builder.loadSchemaObject(uriPrefix + identifier);
   }
 }
+
+ParsedIdentifier.fromURI = (
+  uri, builder = DEFAULT_BUILDER,
+) => new ParsedIdentifier(parseIdentifier(uri)[0], builder);
+
 module.exports = { ParsedIdentifier };
