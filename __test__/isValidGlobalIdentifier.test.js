@@ -1,4 +1,8 @@
+const { initialize } = require('../src');
+
 const isGlobalIdentifier = require('../src/isValidGlobalIdentifier');
+
+beforeAll(initialize);
 
 describe('isGlobalIdentifier Tests', () => {
   test('name-v1 is malformed', () => {
