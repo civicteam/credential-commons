@@ -2,7 +2,7 @@ const _ = require('lodash');
 const MerkleTools = require('merkle-tools');
 
 const { sha256 } = require('../lib/crypto');
-const { Claim } = require('../entities');
+const { Claim } = require('../entities/Claim');
 const { services } = require('../services');
 
 /**
@@ -32,7 +32,7 @@ class CvcMerkleProof {
       this.leaves[idx].targetHash = hash;
       this.leaves[idx].node = merkleTools.getProof(idx);
     });
-    this.leaves = _.filter(this.leaves, (el) => !(el.identifier === 'cvc:Random:node'));
+    this.leaves = _.filter(this.leaves, (el) => !(el.identifier === 'uca-cvc:Random.node-v1'));
     this.merkleRoot = merkleTools.getMerkleRoot().toString('hex');
   }
 
@@ -43,7 +43,7 @@ class CvcMerkleProof {
     const newNodes = _.clone(nodes);
     const secureRandom = services.container.SecureRandom;
     while (newNodes.length < targetLength) {
-      newNodes.push(new Claim('cvc:Random:node', secureRandom.wordWith(16)));
+      newNodes.push(new Claim('uca-cvc:Random.node-v1', secureRandom.wordWith(16)));
     }
     return newNodes;
   }
