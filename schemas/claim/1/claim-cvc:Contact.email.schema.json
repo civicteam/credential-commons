@@ -3,5 +3,6 @@
   "$id": "http://identity.com/schemas/claim-cvc:Contact.email-v1",
   "title": "claim-cvc:Contact.email-v1",
   "type": "object",
+  "attestable": true,
   "allOf": [{"$ref": "http://identity.com/schemas/type-cvc:Email-v1#/definitions/email"}]
 }

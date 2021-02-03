@@ -6,6 +6,7 @@
     "email": {
       "title": "type-cvc:Email-v1",
       "type": "object",
+      "attestable": true,
       "required": [
         "username",
         "domain"
