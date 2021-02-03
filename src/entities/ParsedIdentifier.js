@@ -3,6 +3,8 @@ const { parseIdentifier } = require('../lib/stringUtils');
 
 const DEFAULT_URI = 'http://identity.com/schemas/';
 
+// TODO: Remove hardcoded in favor of `attestable` keyword
+//   in schema
 const attestableMetaClaims = [
   'claim-cvc:Meta.issuer-v1',
   'claim-cvc:Meta.issuanceDate-v1',
@@ -25,7 +27,8 @@ class ParsedIdentifier {
     this.version = version;
     this.schemaInformation = builder.loadSchemaObject(uriPrefix + identifier);
     // TODO: Rename to `provable` at some point
-    this.attestable = attestableMetaClaims.includes(identifier);
+    this.schemaInformation.schema.attestable = this.schemaInformation.schema.attestable
+      || attestableMetaClaims.includes(identifier);
   }
 }
 

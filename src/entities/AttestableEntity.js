@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const { ParsedIdentifier } = require('./ParsedIdentifier');
 const DEFAULT_BUILDER = require('../schema/jsonSchema');
 
@@ -18,6 +19,51 @@ class AttestableEntity {
     this.value = value;
     this.version = this.parsedIdentifier.version;
     this.type = this.schema.type;
+  }
+
+  getAttestableValue(path, isArrayItem = false) {
+    // According to new convention, `parsedIdentifier.name` has format of
+    // "Collection.propertyName"
+    let [, propertyName] = this.parsedIdentifier.name.split('.');
+
+    if (isArrayItem) {
+      // we need to supress the root path
+      propertyName = null;
+    }
+
+    if (path) {
+      propertyName = `${path}.${propertyName}`;
+    }
+
+    // it was defined that the attestable value would be on the URN type https://tools.ietf.org/html/rfc8141
+    // TODO: Is it safer in runtime to determine return based on `this.value` typeof, rather than `this.type`?
+    if (['string', 'number', 'boolean'].indexOf(this.type) >= 0) {
+      return `urn:${propertyName}:${this.salt}:${this.value}|`;
+    } if (this.type === 'array') {
+      const itemsValues = _.reduce(this.value,
+        (result, item) => `${result}${item.getAttestableValue(null, true)},`, '');
+      return `urn:${propertyName}:${this.salt}:[${itemsValues}]`;
+    }
+
+    return _.reduce(_.sortBy(_.keys(this.value)),
+      (s, k) => `${s}${this.value[k].getAttestableValue(propertyName)}`, '');
+  }
+
+  getAttestableValues() {
+    const values = [];
+    const def = this.parsedIdentifier;
+    if (def.schemaInformation.schema.attestable) {
+      values.push({ identifier: this.identifier, value: this.getAttestableValue() });
+      if (this.type === 'object') {
+        _.forEach(_.keys(this.value), (k) => {
+          // TODO: Nested values of root Claim are not Claims, have to change usage of
+          //  `this.value[k].getAttestableValues()` to recurse parsing
+          const innerValues = this.value[k].getAttestableValues();
+          _.reduce(innerValues, (res, iv) => res.push(iv), values);
+        });
+      }
+    }
+    return values;
   }
 }
 

@@ -77,6 +77,7 @@ describe('Verifiable Credentials', () => {
 
     it('should construct credentials from claims', () => {
       const credential = new VerifiableCredential({
+        issuer: 'Some Issuer',
         metadata: {
           identifier: 'credential-cvc:Email-v2',
         },
@@ -92,10 +93,13 @@ describe('Verifiable Credentials', () => {
       const credential = new VerifiableCredential({
         metadata: {
           identifier: 'credential-cvc:Email-v2',
+          issuer: 'Some Issuer',
         },
         claims: { email },
       });
-      expect(credential.proof.leaves).toHaveLength(8);
+      expect(credential.proof).toBeDefined();
+      expect(credential.proof.leaves).toHaveLength(5);
+      // expect(credential.proof.leaves).toHaveLength(8);
     });
   });
 
