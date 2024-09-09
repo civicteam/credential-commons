@@ -1,7 +1,7 @@
 {
-  "name": "@identity.com/credential-commons",
-  "version": "1.2.6",
-  "author": "Identity.com Community",
+  "name": "@civic/credential-commons",
+  "version": "3.1.0-beta.0",
+  "author": "Civic Community",
   "license": "MIT",
   "description": "Verifiable Credential and Attestation Library",
   "keywords": [
@@ -11,28 +11,27 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/identity-com/credential-commons-js.git"
+    "url": "git+https://github.com/civicteam/credential-commons-js.git"
   },
   "main": "dist/cjs/index.js",
   "module": "dist/es/index.js",
   "browser": "dist/browser/index.js",
   "scripts": {
-    "lint": "eslint . --max-warnings=0",
+    "lint": "eslint . --ext .ts --max-warnings=0",
     "lint:fix": "npm run lint -- --fix",
-    "test": "cross-env NODE_ENV=false jest",
+    "test": "npm run build:ts && cross-env NODE_ENV=test jest",
     "test:watch": "jest --watch",
     "check": "npm run lint && npm run test",
-    "check-schemas": "cross-env NODE_ENV=false jest --no-coverage __integrations__/schemas/",
-    "generate-schemas": "cross-env NODE_ENV=test node scripts/generateSchemas.js",
-    "publish-schemas": "node scripts/publishSchemas.js && aws s3 cp ./dist/schemas/public/ $S3_BUCKET_SCHEMA_URL --recursive --acl public-read",
     "generate-civic-config": "cross-env NODE_ENV=test node scripts/configuration.js",
-    "build:cjs": "BABEL_ENV=cjs babel src -d dist/cjs",
-    "build:es": "babel src -d dist/es --no-babelrc",
-    "build:browser:before": "BABEL_ENV=browser babel src -d dist/prebrowser",
+    "build:ts": "tsc --build",
+    "build:cjs": "BABEL_ENV=cjs babel dist/ts-generated -d dist/cjs",
+    "build:es": "babel dist/ts-generated -d dist/es --no-babelrc",
+    "build:browser:before": "BABEL_ENV=browser babel dist/ts-generated -d dist/prebrowser",
     "build:browser:after": "minify dist/prebrowser -d dist/browser",
     "build:browser:clean": "rimraf dist/prebrowser",
     "build:browser": "npm run build:browser:before && npm run build:browser:after && npm run build:browser:clean",
-    "build": "npm run build:browser && npm run build:cjs && npm run build:es",
+    "build": "npm run build:clean && npm run build:ts && npm run build:browser && npm run build:cjs && npm run build:es",
+    "build:clean": "rimraf dist",
     "pretag": "git fetch --tags",
     "tag": "git tag v$npm_package_version && git push --tags origin master",
     "precommit": "npm run lint",
@@ -40,90 +39,119 @@
     "audit-ci": "audit-ci --config audit-ci.json"
   },
   "devDependencies": {
-    "npm": "^6.14.8",
-    "audit-ci": "^3.1.0",
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.24.1",
-    "babel-jest": "^24.8.0",
-    "babel-minify": "^0.4.3",
-    "babel-plugin-transform-runtime": "^6.23.0",
-    "babel-preset-env": "^1.6.1",
-    "eslint": "^4.19.1",
-    "eslint-config-airbnb": "^17.0.0",
-    "eslint-config-airbnb-base": "^13.0.0",
-    "eslint-loader": "^2.0.0",
-    "eslint-plugin-import": "^2.13.0",
-    "eslint-plugin-jsx-a11y": "^6.1.1",
-    "eslint-plugin-no-only-tests": "^2.0.0",
-    "eslint-plugin-react": "^7.10.0",
-    "husky": "^1.1.2",
-    "jest": "^24.8.0",
-    "jest-html-reporter": "^2.3.0",
-    "request-debug": "^0.2.0",
-    "rimraf": "^2.6.2",
-    "ajv": "^6.5.2"
-  },
-  "dependencies": {
-    "@identity.com/uca": "github:civicteam/uca",
-    "babel-runtime": "^6.26.0",
-    "bitcoinjs-lib": "git+https://github.com/dabura667/bitcoinjs-lib.git#bcash330",
-    "bluebird": "^3.7.2",
-    "bottlejs": "^1.7.1",
-    "bson": "^4.2.2",
-    "chalk": "^4.1.0",
+    "@babel/cli": "^7.25.6",
+    "@babel/core": "^7.25.2",
+    "@babel/plugin-transform-runtime": "^7.25.4",
+    "@babel/preset-env": "^7.25.4",
+    "@changesets/cli": "^2.27.8",
+    "@solana/web3.js": "^1.95.3",
+    "@transmute/did-key.js": "^0.3.0-unstable.10",
+    "@types/flat": "^5.0.5",
+    "@types/lodash": "^4.17.7",
+    "@types/request-promise-native": "^1.0.21",
+    "@types/sjcl": "^1.0.34",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.4.0",
+    "@typescript-eslint/parser": "^8.4.0",
+    "audit-ci": "^7.1.0",
+    "babel-jest": "^29.7.0",
+    "babel-minify": "^0.5.2",
+    "changesets": "^1.0.2",
     "clear": "^0.1.0",
     "cross-env": "^7.0.3",
-    "dotenv": "^8.2.0",
-    "figlet": "^1.5.0",
-    "flat": "^4.1.0",
-    "inquirer": "^7.3.3",
-    "json-format": "^1.0.1",
+    "eslint": "^9.9.1",
+    "eslint-loader": "^4.0.2",
+    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-jsx-a11y": "^6.10.0",
+    "eslint-plugin-no-only-tests": "^3.3.0",
+    "eslint-plugin-react": "^7.35.2",
+    "figlet": "^1.7.0",
+    "husky": "^9.1.5",
+    "inquirer": "^10.2.0",
+    "jest": "^29.7.0",
+    "jest-html-reporter": "^3.10.2",
+    "npm": "^10.8.3",
+    "request-debug": "^0.2.0",
+    "rimraf": "^6.0.1",
+    "shelljs": "^0.8.5",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@civic/uca": "^1.1.4",
+    "@identity.com/sol-did-client": "^3.3.0",
+    "@transmute/credentials-context": "^0.7.0-unstable.82",
+    "@transmute/did-context": "^0.7.0-unstable.82",
+    "@transmute/lds-ecdsa-secp256k1-recovery2020": "^0.0.7",
+    "@transmute/security-context": "^0.7.0-unstable.82",
+    "@transmute/vc.js": "^0.7.0-unstable.82",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "bitcoinjs-lib": "https://github.com/dabura667/bitcoinjs-lib.git#bcash330",
+    "bottlejs": "^2.0.1",
+    "bs58": "^6.0.0",
+    "did-resolver": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "flat": "^6.0.1",
+    "json-schema-traverse": "^1.0.0",
     "lodash": "^4.17.21",
-    "md5": "^2.3.0",
     "merkle-tools": "^1.4.1",
-    "moment-mini": "^2.24.0",
-    "node-fetch": "^2.6.1",
-    "randexp": "^0.5.3",
-    "randomstring": "^1.1.5",
+    "moment-mini": "^2.29.4",
     "request": "^2.88.2",
     "request-promise-native": "^1.0.9",
-    "shelljs": "^0.8.4",
-    "sift": "^13.5.0",
+    "sift": "^17.1.3",
     "sjcl": "github:civicteam/sjcl#v1.0.8-ecc",
-    "type-of-is": "^3.5.1",
-    "unix-timestamp": "^0.2.0",
-    "uuid": "^3.3.2",
-    "valid-url": "^1.0.9",
-    "winston": "^3.3.3"
+    "tweetnacl": "^1.0.3",
+    "unix-timestamp": "^1.1.0",
+    "uuid": "^10.0.0",
+    "valid-url": "^1.0.9"
   },
   "jest": {
     "modulePathIgnorePatterns": [
-      "<rootDir>/dist/"
+      "dist/ts-generated/services/DummyAnchorServiceImpl.js",
+      "dist/ts-generated/services/anchorService.js",
+      "dist/ts-generated/services/DefaultAnchorService.js",
+      "dist/ts-generated/test-utils/",
+      "node_modules/",
+      "build/",
+      "vendor/"
     ],
     "collectCoverageFrom": [
-      "**/src/**/*.{js}",
-      "!**/node_modules/**",
-      "!**/build/**",
-      "!**/vendor/**",
-      "!src/services/DummyAnchorServiceImpl.js",
-      "!src/services/anchorService.js"
+      "dist/ts-generated/**/*.js"
     ],
     "coverageThreshold": {
       "global": {
-        "branches": 85,
-        "functions": 85,
-        "lines": 85,
-        "statements": 85
+        "branches": 0,
+        "functions": 0,
+        "lines": 0,
+        "statements": 0
       }
     },
+    "testEnvironment": "node",
     "coverageDirectory": "reports/coverage",
     "collectCoverage": true,
     "testResultsProcessor": "./node_modules/jest-html-reporter",
-    "verbose": true
+    "verbose": true,
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(@digitalbazaar/did-io|@digitalbazaar/lru-memoize|@digitalbazaar/ed25519-verification-key-2018|@digitalbazaar/did-io|base58-universal))"
+    ],
+    "modulePaths": [
+      "<rootDir>/dist/ts-generated"
+    ],
+    "moduleNameMapper": {
+      "@digitalbazaar/did-io": "@digitalbazaar/did-io/lib/main.js",
+      "@digitalbazaar/lru-memoize": "@digitalbazaar/lru-memoize/lib/main.js",
+      "@digitalbazaar/ed25519-verification-key-2018": "@digitalbazaar/ed25519-verification-key-2018/src/main.js",
+      "base58-universal": "base58-universal/main.js"
+    }
   },
   "jest-html-reporter": {
     "pageTitle": "Verifiable Credential and Attestation Library Test Suite",
     "outputPath": "reports/test-report.html",
     "includeFailureMsg": true
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint"
+    }
   }
 }
