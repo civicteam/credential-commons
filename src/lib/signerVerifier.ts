@@ -34,7 +34,7 @@ interface Signature {
 interface SignerOptions {
     verificationMethod: string,
     keypair: {
-        secretKey: string
+        secretKey: Uint8Array
     },
     privateKey: string,
     signer: MerkleSigner
@@ -87,6 +87,7 @@ class Ed25519Verifier {
  * Creates a signer from the provided information
  *
  * @param options Signer options:
+ * @param didResolver
  * @param options.verificationMethod The verificationMethod for the signing key
  * @param options.keypair The keypair to sign with
  *    or
@@ -138,6 +139,7 @@ const signer = async (options: SignerOptions, didResolver: IDiDResolver) => {
  * Creates a verifier based on the information provided
  * @param did The issuer DID
  * @param verificationMethod The verification method used to lookup the key
+ * @param didResolver
  */
 const verifier = async (did: string, verificationMethod: string, didResolver: IDiDResolver) => {
     const canSignFor = await didUtil.canSign(did, verificationMethod, didResolver);
