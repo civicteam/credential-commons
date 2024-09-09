@@ -6,7 +6,7 @@ import _ from 'lodash';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import traverse from 'json-schema-traverse';
-import {definitions as ucaDefinitions} from '@identity.com/uca';
+import {definitions as ucaDefinitions} from '@civic/uca';
 import definitions from '../../claim/definitions'
 import credentialDefinitions from '../../creds/definitions'
 

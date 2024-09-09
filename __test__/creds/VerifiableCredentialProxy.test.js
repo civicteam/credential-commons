@@ -1947,7 +1947,7 @@ describe('Verifiable Credential JSON serialization', () => {
     const credJSON = JSON.parse(JSON.stringify(cred));
 
     expect(credJSON).toEqual(expect.objectContaining({
-      '@context': ['https://www.w3.org/2018/credentials/v1', 'https://www.identity.com/credentials/v3'],
+      '@context': ['https://www.w3.org/2018/credentials/v1', 'https://www.civic/credentials/v3'],
       id: cred.id,
       issuer: cred.issuer,
       issuanceDate: cred.issuanceDate,

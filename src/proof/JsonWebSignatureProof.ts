@@ -24,7 +24,7 @@ const credentialContext = {
         type: '@type',
         xsd: 'http://www.w3.org/2001/XMLSchema#',
         IdentityCredential: {
-            '@id': 'https://www.identity.com/credentials/v1#identityCredential',
+            '@id': 'https://www.civic/credentials/v1#identityCredential',
             '@context': {
                 '@version': 1.1,
                 '@protected': true,
@@ -72,7 +72,7 @@ export const contexts: any = {
     "https://w3id.org/security/v1": sec.contexts.get(
         sec.constants.SECURITY_CONTEXT_V1_URL
     ),
-    "https://www.identity.com/credentials/v3": credentialContext
+    "https://www.civic/credentials/v3": credentialContext
 };
 
 type ProofFormat = "vc" | "vc-jwt";

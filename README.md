@@ -1,7 +1,7 @@
-# Identity.com Verifiable Credential Library
+# Civic Verifiable Credential Library
 
-[![CircleCI](https://circleci.com/gh/identity-com/credential-commons.svg?style=svg)](https://circleci.com/gh/identity-com/credential-commons)
-[![NPM](https://img.shields.io/npm/v/%40identity.com/credential-commons.svg)](https://www.npmjs.com/package/@identity.com/credential-commons)
+[![CircleCI](https://circleci.com/gh/civicteam/credential-commons.svg?style=svg)](https://circleci.com/gh/civicteam/credential-commons)
+[![NPM](https://img.shields.io/npm/v/%40civic/credential-commons.svg)](https://www.npmjs.com/package/@civic/credential-commons)
 
 ## Contents
 - [Summary](#summary)
@@ -35,7 +35,7 @@ to issue, Credential Wallets to verify, filter and Requesters to verify credenti
 ## Installation
 Credential commons is an open-source library that has its binary package published on NPM.
 Projects that depend on credential-commons must install the dependency following this way:
-`npm install --save @identity.com/credential-commons`
+`npm install --save @civic/credential-commons`
 
 All versions follow SemVer (https://semver.org/)
 
@@ -512,7 +512,7 @@ interface SchemaLoader {
   // Returns a boolean if the schema loader can load the supplied identitifier (in the case of multiple loaders)
   valid(identifier): boolean;
   
-  // Returns the schema id for the provided identifier (e.g. http://identity.com/schemas/claim-cvc:Identity.address-v1)
+  // Returns the schema id for the provided identifier (e.g. https://schemas.civic.com/claim-cvc:Identity.address-v1)
   schemaId(identifier): string;
   
   // Load the schema based on the provided identifier and returns the schema as an object

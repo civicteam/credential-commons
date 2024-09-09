@@ -697,7 +697,7 @@ function VerifiableCredentialBaseConstructor(identifier, issuer, expiryIn, subje
         return {
             '@context': [
                 'https://www.w3.org/2018/credentials/v1',
-                `https://www.identity.com/credentials/v${version}`,
+                `https://www.civic/credentials/v${version}`,
             ],
             ...obj,
         };
