@@ -6,7 +6,7 @@ import fs from 'fs'
 import {parseIdentifier} from '../../../lib/stringUtils'
 import {services} from '../../../services';
 
-const rootUri = 'http://identity.com/schemas/';
+const rootUri = 'https://schemas.civic.com';
 const DEFAULT_SCHEMA_PATH = 'http://dev-schemas.civic.com.s3-website-us-east-1.amazonaws.com/dev';
 
 class FSSchemaCache {

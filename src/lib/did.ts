@@ -2,7 +2,7 @@
 // @ts-ignore
 import {DIDDocument, } from "did-resolver";
 import {IDiDResolver} from "./resolver";
-import {DidSolIdentifier, DidSolService} from "@identity.com/sol-did-client";
+import {DidSolIdentifier, DidSolService} from "@civic/sol-did-client";
 import {findVerificationMethod} from "./did/findVerificationMethod";
 
 const resolveSolDid = (did: string): Promise<DIDDocument> => {

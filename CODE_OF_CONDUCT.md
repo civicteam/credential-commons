@@ -1,5 +1,5 @@
 # Open Source Code of Conduct
-This code of conduct outlines our expectations for participants within the Identity.com Open Source community, as well as steps to reporting unacceptable behavior. We are committed to providing a welcoming and inspiring community for all and expect our code of conduct to be honored. Anyone who violates this code of conduct may be banned from the community.
+This code of conduct outlines our expectations for participants within the Civic Open Source community, as well as steps to reporting unacceptable behavior. We are committed to providing a welcoming and inspiring community for all and expect our code of conduct to be honored. Anyone who violates this code of conduct may be banned from the community.
 
 
 # Our open source community strives to:
@@ -33,7 +33,7 @@ Although this list cannot be exhaustive, we explicitly honor diversity in age, g
 
 
 # Reporting Issues
-If you experience or witness unacceptable behavior—or have any other concerns—please report it by contacting us via https://www.identity.com/about/contact-us/. All reports will be handled with discretion. In your report please include:
+If you experience or witness unacceptable behavior—or have any other concerns—please report it by contacting us us via code-of-conduct@civic.com. All reports will be handled with discretion. In your report please include:
 
 * Your contact information.
 * Names (real, nicknames, or pseudonyms) of any individuals involved. If there are additional witnesses, please include them as well. Your account of what occurred, and if you believe the incident is ongoing. If there is a publicly available record (e.g. a mailing list archive or a public IRC logger), please include a link.

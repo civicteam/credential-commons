@@ -44,7 +44,7 @@ const CREDENTIAL_TYPE = [
     "IdentityCredential"
 ];
 
-const CREDENTIAL_ID_PREFIX = "http://www.identity.com/credential/"
+const CREDENTIAL_ID_PREFIX = "http://www.civic/credential/"
 
 export class VerifiableCredential {
     public "@context": string[];
@@ -68,7 +68,7 @@ export class VerifiableCredential {
     ) {
         this["@context"] = [
             "https://www.w3.org/2018/credentials/v1",
-            "https://www.identity.com/credentials/v3"
+            "https://www.civic/credentials/v3"
         ];
 
         this.id = CREDENTIAL_ID_PREFIX + uuidv4();
