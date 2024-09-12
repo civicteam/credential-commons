@@ -114,7 +114,6 @@
     },
     "coverageDirectory": "reports/coverage",
     "collectCoverage": true,
-    "testResultsProcessor": "./node_modules/jest-html-reporter",
     "verbose": true,
     "transformIgnorePatterns": [
       "/node_modules/(?!(@digitalbazaar/did-io|@digitalbazaar/lru-memoize|@digitalbazaar/ed25519-verification-key-2018|@digitalbazaar/did-io|base58-universal))"
@@ -125,11 +124,6 @@
       "@digitalbazaar/ed25519-verification-key-2018": "@digitalbazaar/ed25519-verification-key-2018/src/main.js",
       "base58-universal": "base58-universal/main.js"
     }
-  },
-  "jest-html-reporter": {
-    "pageTitle": "Verifiable Credential and Attestation Library Test Suite",
-    "outputPath": "reports/test-report.html",
-    "includeFailureMsg": true
   },
   "husky": {
     "hooks": {
