@@ -1,6 +1,6 @@
 {
   "name": "@civic/credential-commons",
-  "version": "0.0.1-beta.0",
+  "version": "0.0.1-beta.1",
   "author": "Civic",
   "license": "MIT",
   "description": "Verifiable Credential and Attestation Library",
@@ -15,7 +15,6 @@
   },
   "main": "dist/cjs/index.js",
   "module": "dist/es/index.js",
-  "browser": "dist/browser/index.js",
   "scripts": {
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "yarn lint -- --fix",
