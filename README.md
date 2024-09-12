@@ -2,8 +2,8 @@
 
 *Warning:* this still is a working in progress and is not ready for usage yet. Please feel free to explore the code but don't integrate yet. We expect API changes before the 1st release.
 
-[![CircleCI](https://circleci.com/gh/identity-com/credential-commons.svg?style=svg)](https://circleci.com/gh/identity-com/credential-commons)
-[![NPM](https://img.shields.io/npm/v/%40identity.com/credential-commons.svg)](https://www.npmjs.com/package/@identity.com/credential-commons)
+[![CircleCI](https://circleci.com/gh/civic/credential-commons.svg?style=svg)](https://circleci.com/gh/civic/credential-commons)
+[![NPM](https://img.shields.io/npm/v/%40identity.com/credential-commons.svg)](https://www.npmjs.com/package/@civic/credential-commons)
 
 
 ## Summary
@@ -12,37 +12,38 @@ This Javascript Library provides functionality around Verifiable Credentials (VC
 
 ## Contents
 
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Commands](#commands)
-- [Configuration](#configuration)
-  * [Etc Config File /etc/civic/config](#etc-config-file--etc-civic-config)
-  * [User Config File ~/.civic/config](#user-config-file---civic-config)
-- [Features](#features)
-  * [User Collectable Attributes](#user-collectable-attributes)
-    + [Defining new Claim](#defining-new-claim)
-    + [Exporting Claim to the Claim Registry Services](#exporting-claim-to-the-claim-registry-services)
-    + [Using a Claim in javascript (with this library)](#using-a-claim-in-javascript--with-this-library-)
-      - [creating Claim instances with the constructor](#creating-claim-instances-with-the-constructor)
-  * [Credentials](#credentials)
-    + [Defining new Claim](#defining-new-claim-1)
-    + [Exporting Claim to the Claim Registry Services](#exporting-claim-to-the-claim-registry-services-1)
-    + [Using a VerifiableCredential in javascript (with this library)](#using-a-verifiablecredential-in-javascript--with-this-library-)
-      - [creating VerifiableCredential instances with the constructor](#creating-verifiablecredential-instances-with-the-constructor)
-      - [anchoring VerifiableCredential instances with the constructor](#anchoring-verifiablecredential-instances-with-the-constructor)
-      - [refreshing an anchor (temp => permanent) VerifiableCredential instances with the constructor](#refreshing-an-anchor--temp----permanent--verifiablecredential-instances-with-the-constructor)
-      - [Verifiable Credential Sample](#verifiable-credential-sample)
-      - [Construting a VerifiableCredential from a JSON](#construting-a-verifiablecredential-from-a-json)
-      - [Verifying a Verifiable Credential](#verifying-a-verifiable-credential)
-- [Schema Generator](#schema-generator)
-
-- [Conventions:](#conventions-)
-  * [Publishing schemas](#publishing-schemas)
-- [Commands](#commands)
-- [Integration with CCS Libraries](#integration-with-ccs-libraries)
-- [ES5 and ES6 definitions](#es5-and-es6-definitions)
-- [Node vs React usage of this library](#node-vs-react-usage-of-this-library)
-- [Releases](#releases)
+- [Identity.com Verifiable Credential Library](#identitycom-verifiable-credential-library)
+  - [Summary](#summary)
+  - [Contents](#contents)
+  - [Prerequisites](#prerequisites)
+  - [Installation ](#installation)
+  - [Commands](#commands)
+  - [Configuration](#configuration)
+    - [Etc Config File /etc/civic/config](#etc-config-file-etccivicconfig)
+    - [User Config File ~/.civic/config](#user-config-file-civicconfig)
+    - [incode](#incode)
+  - [Features](#features)
+    - [User Collectable Attributes](#user-collectable-attributes)
+      - [Using a Claim in javascript (with this library)](#using-a-claim-in-javascript-with-this-library)
+        - [creating Claim instances with the async `create` function](#creating-claim-instances-with-the-async-create-function)
+    - [Credentials](#credentials)
+      - [Defining new Claim](#defining-new-claim)
+      - [Using a VerifiableCredential in javascript (with this library)](#using-a-verifiablecredential-in-javascript-with-this-library)
+        - [creating VerifiableCredential instances with the constructor](#creating-verifiablecredential-instances-with-the-constructor)
+        - [creating VerifiableCredential with evidence](#creating-verifiablecredential-with-evidence)
+        - [anchoring VerifiableCredential instances with the constructor](#anchoring-verifiablecredential-instances-with-the-constructor)
+        - [refreshing an anchor (temp =\> permanent) VerifiableCredential instances with the constructor](#refreshing-an-anchor-temp--permanent-verifiablecredential-instances-with-the-constructor)
+      - [Granting the Credential Usage(for single user) from the owner](#granting-the-credential-usagefor-single-user-from-the-owner)
+        - [Granting](#granting)
+        - [Verify if is Granted](#verify-if-is-granted)
+        - [Verifiable Credential Sample](#verifiable-credential-sample)
+        - [Construting a VerifiableCredential from a JSON](#construting-a-verifiablecredential-from-a-json)
+        - [Verifying a Verifiable Credential](#verifying-a-verifiable-credential)
+  - [Loading schemas](#loading-schemas)
+  - [Conventions:](#conventions)
+  - [ES5 and ES6 definitions](#es5-and-es6-definitions)
+  - [Node vs React usage of this library](#node-vs-react-usage-of-this-library)
+  - [Releases](#releases)
 
 ## Prerequisites
 
@@ -62,16 +63,16 @@ node src/index.js decrypt
 ## Installation 
 Credential commons is an open-source library that has its binary package published on NPM.
 Projects that depend on credential-commons must install the dependency following this way:
-`npm install --save @identity.com/credential-commons`
+`yarn install --save @civic/credential-commons`
 
 All versions follow SemVer (https://semver.org/)
 
 ## Commands
 
-- `npm run lint` - run an ESLint check
-- `npm run coverage` - run code coverage and generate report in the `coverage` folder
+- `yarn lint` - run an ESLint check
+- `yarn coverage` - run code coverage and generate report in the `coverage` folder
 - `npm test` - run all tests
-- `npm run test:watch` - run all tests in watch mode
+- `yarn test:watch` - run all tests in watch mode
 
 ## Configuration
 
@@ -703,3 +704,4 @@ increase version number on package.json
 create the stable version and tag it. E.g: v0.2.29
 remove the release.N tag
 deploy the binary file to NPM
+

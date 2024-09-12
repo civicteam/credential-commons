@@ -1,7 +1,7 @@
 {
-  "name": "@identity.com/credential-commons",
-  "version": "3.0.2",
-  "author": "Identity.com Community",
+  "name": "@civic/credential-commons",
+  "version": "0.0.1-beta.1",
+  "author": "Civic",
   "license": "MIT",
   "description": "Verifiable Credential and Attestation Library",
   "keywords": [
@@ -11,28 +11,27 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/identity-com/credential-commons-js.git"
+    "url": "git+https://github.com/civicteam/credential-commons.git"
   },
   "main": "dist/cjs/index.js",
   "module": "dist/es/index.js",
-  "browser": "dist/browser/index.js",
   "scripts": {
     "lint": "eslint . --max-warnings=0",
-    "lint:fix": "npm run lint -- --fix",
-    "test": "cross-env NODE_ENV=test jest",
+    "lint:fix": "yarn lint -- --fix",
+    "test": "cross-env NODE_ENV=test jest --testMatch ${TEST_FILTER:-'**/*.test.js'} --roots ./__test__",
     "test:watch": "jest --watch",
-    "check": "npm run lint && npm run test",
+    "check": "yarn lint && yarn test",
     "generate-civic-config": "cross-env NODE_ENV=test node scripts/configuration.js",
     "build:cjs": "BABEL_ENV=cjs babel src -d dist/cjs",
     "build:es": "babel src -d dist/es --no-babelrc",
     "build:browser:before": "BABEL_ENV=browser babel src -d dist/prebrowser",
     "build:browser:after": "minify dist/prebrowser -d dist/browser",
     "build:browser:clean": "rimraf dist/prebrowser",
-    "build:browser": "npm run build:browser:before && npm run build:browser:after && npm run build:browser:clean",
-    "build": "npm run build:browser && npm run build:cjs && npm run build:es",
+    "build:browser": "yarn build:browser:before && yarn build:browser:after && yarn build:browser:clean",
+    "build": "yarn build:browser && yarn build:cjs && yarn build:es",
     "pretag": "git fetch --tags",
     "tag": "git tag v$npm_package_version && git push --tags origin master",
-    "precommit": "npm run lint",
+    "precommit": "yarn lint",
     "release:create": "hub release create -m v$npm_package_version v$npm_package_version",
     "audit-ci": "audit-ci --config audit-ci.json"
   },
@@ -114,7 +113,6 @@
     },
     "coverageDirectory": "reports/coverage",
     "collectCoverage": true,
-    "testResultsProcessor": "./node_modules/jest-html-reporter",
     "verbose": true,
     "transformIgnorePatterns": [
       "/node_modules/(?!(@digitalbazaar/did-io|@digitalbazaar/lru-memoize|@digitalbazaar/ed25519-verification-key-2018|@digitalbazaar/did-io|base58-universal))"
@@ -126,14 +124,9 @@
       "base58-universal": "base58-universal/main.js"
     }
   },
-  "jest-html-reporter": {
-    "pageTitle": "Verifiable Credential and Attestation Library Test Suite",
-    "outputPath": "reports/test-report.html",
-    "includeFailureMsg": true
-  },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run lint"
+      "pre-commit": "yarn lint"
     }
   }
 }
