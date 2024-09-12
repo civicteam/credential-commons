@@ -609,8 +609,9 @@ function VerifiableCredentialBaseConstructor(identifier, issuer, expiryIn, subje
           const aggregateItemPath = _.keys(aggregateObj)[0];
           const pathValue = _.get(claims, aggregateItemPath);
           if (isDateStructure(pathValue)) {
-            _.set(claims, aggregateItemPath, transformDate(pathValue)); // transforms delta values like "-18y" to a proper timestamp
-    
+            // transforms delta values like "-18y" to a proper timestamp
+            _.set(claims, aggregateItemPath, transformDate(pathValue));
+
             _.forEach(constraint[path], (c, index) => {
               // we need to use special syntax to maintain the dots in path, or it will create a nested object
               const pathToSet = `${path}.${index}["${aggregateItemPath}"]`;
@@ -622,7 +623,7 @@ function VerifiableCredentialBaseConstructor(identifier, issuer, expiryIn, subje
         const pathValue = _.get(claims, path);
         if (isDateStructure(pathValue)) {
           _.set(claims, path, transformDate(pathValue)); // transforms delta values like "-18y" to a proper timestamp
-  
+
           _.set(constraint, path, _.mapValues(constraint[path], convertTimestampIfString));
         }
       }
