@@ -1232,6 +1232,137 @@ describe('Unit tests for Verifiable Credentials', () => {
     })).toBeTruthy();
   });
 
+  describe('with an aggregate constraint', () => {
+    describe('$and', () => {
+      it('Should pass with both matching constraints', async () => {
+        const name = await Claim.create('claim-cvc:Identity.name-v1', identityName);
+        const dob = await Claim.create('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
+        const cred = await VC.create('credential-cvc:Identity-v3', uuidv4(), null, credentialSubject, [name, dob]);
+        const timestampBeforeDOB = new Date(identityDateOfBirth.year - 2, 1, 1).getTime() / 1000;
+        expect(cred.isMatch({
+          claims: [
+            {
+              path: '$and',
+              is: [
+                { 'identity.dateOfBirth': { $lt: '-20y' } },
+                { 'identity.dateOfBirth': { $gt: timestampBeforeDOB } },
+              ],
+            },
+          ],
+        })).toBeTruthy();
+      });
+
+      it('Should fail if one of the matching $and constraints fails', async () => {
+        const name = await Claim.create('claim-cvc:Identity.name-v1', identityName);
+        const dob = await Claim.create('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
+        const cred = await VC.create('credential-cvc:Identity-v3', uuidv4(), null, credentialSubject, [name, dob]);
+        const timestampBeforeDOB = new Date(identityDateOfBirth.year - 2, 1, 1).getTime() / 1000;
+        expect(cred.isMatch({
+          claims: [
+            {
+              path: '$and',
+              is: [
+                { 'identity.dateOfBirth': { $lt: '-100y' } },
+                { 'identity.dateOfBirth': { $gt: timestampBeforeDOB } },
+              ],
+            },
+          ],
+        })).toBeFalsy();
+      });
+
+      it('Should fail if both of the constraints fail', async () => {
+        const name = await Claim.create('claim-cvc:Identity.name-v1', identityName);
+        const dob = await Claim.create('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
+        const cred = await VC.create('credential-cvc:Identity-v3', uuidv4(), null, credentialSubject, [name, dob]);
+        const timestampAfterDOB = new Date(identityDateOfBirth.year + 2, 1, 1).getTime() / 1000;
+        expect(cred.isMatch({
+          claims: [
+            {
+              path: '$and',
+              is: [
+                { 'identity.dateOfBirth': { $lt: '-100y' } },
+                { 'identity.dateOfBirth': { $gt: timestampAfterDOB } },
+              ],
+            },
+          ],
+        })).toBeFalsy();
+      });
+    });
+
+    describe('$or', () => {
+      it('Should pass with both matching constraints', async () => {
+        const name = await Claim.create('claim-cvc:Identity.name-v1', identityName);
+        const dob = await Claim.create('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
+        const cred = await VC.create('credential-cvc:Identity-v3', uuidv4(), null, credentialSubject, [name, dob]);
+        const timestampBeforeDOB = new Date(identityDateOfBirth.year - 2, 1, 1).getTime() / 1000;
+        expect(cred.isMatch({
+          claims: [
+            {
+              path: '$or',
+              is: [
+                { 'identity.dateOfBirth': { $lt: '-20y' } },
+                { 'identity.dateOfBirth': { $gt: timestampBeforeDOB } },
+              ],
+            },
+          ],
+        })).toBeTruthy();
+      });
+
+      it('Should pass if one of the matching constraints fails', async () => {
+        const name = await Claim.create('claim-cvc:Identity.name-v1', identityName);
+        const dob = await Claim.create('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
+        const cred = await VC.create('credential-cvc:Identity-v3', uuidv4(), null, credentialSubject, [name, dob]);
+        const timestampBeforeDOB = new Date(identityDateOfBirth.year - 2, 1, 1).getTime() / 1000;
+        expect(cred.isMatch({
+          claims: [
+            {
+              path: '$or',
+              is: [
+                { 'identity.dateOfBirth': { $lt: '-100y' } },
+                { 'identity.dateOfBirth': { $gt: timestampBeforeDOB } },
+              ],
+            },
+          ],
+        })).toBeTruthy();
+      });
+
+      it('Should fail if both of the constraints fail', async () => {
+        const name = await Claim.create('claim-cvc:Identity.name-v1', identityName);
+        const dob = await Claim.create('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
+        const cred = await VC.create('credential-cvc:Identity-v3', uuidv4(), null, credentialSubject, [name, dob]);
+        const timestampAfterDOB = new Date(identityDateOfBirth.year + 2, 1, 1).getTime() / 1000;
+        expect(cred.isMatch({
+          claims: [
+            {
+              path: '$or',
+              is: [
+                { 'identity.dateOfBirth': { $lt: '-100y' } },
+                { 'identity.dateOfBirth': { $gt: timestampAfterDOB } },
+              ],
+            },
+          ],
+        })).toBeFalsy();
+      });
+
+      it('Should allow a null constraint to pass if the path is missing', async () => {
+        const name = await Claim.create('claim-cvc:Identity.name-v1', identityName);
+        const cred = await VC.create('credential-cvc:Identity-v3', uuidv4(), null, credentialSubject, [name]);
+        const timestampAfterDOB = new Date(identityDateOfBirth.year + 2, 1, 1).getTime() / 1000;
+        expect(cred.isMatch({
+          claims: [
+            {
+              path: '$or',
+              is: [
+                { 'identity.dateOfBirth': { $eq: null } },
+                { 'identity.dateOfBirth': { $gt: timestampAfterDOB } },
+              ],
+            },
+          ],
+        })).toBeTruthy();
+      });
+    });
+  });
+
   it('Should not match', async () => {
     const name = await Claim.create('claim-cvc:Identity.name-v1', identityName);
     const dob = await Claim.create('claim-cvc:Identity.dateOfBirth-v1', identityDateOfBirth);
