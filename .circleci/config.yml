@@ -56,7 +56,7 @@ jobs:
       - restore_cache:
           keys:
           - v1-dependencies-{{ checksum "package.json" }}-{{checksum "package-lock.json"}}
-      - run: npm ci
+      - run: yarn install
       - save_cache:
           paths:
             - node_modules
@@ -84,7 +84,7 @@ jobs:
       - run: |
           sh ./.circleci/install_hub.sh
           mkdir -p ~/.config/ && echo -e "github.com:\n- user: civictechuser\n  oauth_token: $GITHUB_API_KEY\n  protocol: https\n" > ~/.config/hub
-      - run: npm ci
+      - run: yarn install
       - save_cache:
           paths:
             - node_modules
