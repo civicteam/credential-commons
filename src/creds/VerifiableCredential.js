@@ -597,32 +597,35 @@ function VerifiableCredentialBaseConstructor(identifier, issuer, expiryIn, subje
     const siftCompatibleConstraints = transformConstraint(constraints);
 
     const claimsMatchConstraint = (constraint) => {
-      const origPath = _.keys(constraint)[0];
-      let path = origPath;
-      let pathValue = _.get(claims, path);
+      const path = _.keys(constraint)[0];
 
       // for the special case where the constraint is an aggregate array then we need to get the path from the values
       // in the array and convert any timestamp values to unix timestamps
       const constraintIsAggregateArray = ['$or', '$nor', '$and', '$not'].includes(path) && _.isArray(constraint[path]);
       if (constraintIsAggregateArray) {
         // the orig path in this case is one of $or etc. so we instead want to get the actual path in the claim to check
-        ([path] = _.keys(constraint[path][0]));
-        pathValue = _.get(claims, path);
-      }
-      if (isDateStructure(pathValue)) {
-        _.set(claims, path, transformDate(pathValue)); // transforms delta values like "-18y" to a proper timestamp
-
-        if (constraintIsAggregateArray) {
-          _.forEach(constraint[origPath], (c, index) => {
-            // we need to use special syntax to maintain the dots in path, or it will create a nested object
-            const pathToSet = `${origPath}.${index}["${path}"]`;
-            _.set(constraint, pathToSet, _.mapValues(c[path], convertTimestampIfString));
-          });
-        } else {
+        // ([path] = _.keys(constraint[path][0]));
+        _.forEach(constraint[path], (aggregateObj) => {
+          const aggregateItemPath = _.keys(aggregateObj)[0];
+          const pathValue = _.get(claims, aggregateItemPath);
+          if (isDateStructure(pathValue)) {
+            _.set(claims, aggregateItemPath, transformDate(pathValue)); // transforms delta values like "-18y" to a proper timestamp
+    
+            _.forEach(constraint[path], (c, index) => {
+              // we need to use special syntax to maintain the dots in path, or it will create a nested object
+              const pathToSet = `${path}.${index}["${aggregateItemPath}"]`;
+              _.set(constraint, pathToSet, _.mapValues(c[aggregateItemPath], convertTimestampIfString));
+            });
+          }
+        });
+      } else {
+        const pathValue = _.get(claims, path);
+        if (isDateStructure(pathValue)) {
+          _.set(claims, path, transformDate(pathValue)); // transforms delta values like "-18y" to a proper timestamp
+  
           _.set(constraint, path, _.mapValues(constraint[path], convertTimestampIfString));
         }
-      } // The Constraints are ANDed here - if one is false, the entire
-
+      }
       return sift(constraint)([claims]);
     };
 
