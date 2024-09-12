@@ -63,16 +63,16 @@ node src/index.js decrypt
 ## Installation 
 Credential commons is an open-source library that has its binary package published on NPM.
 Projects that depend on credential-commons must install the dependency following this way:
-`npm install --save @civic/credential-commons`
+`yarn install --save @civic/credential-commons`
 
 All versions follow SemVer (https://semver.org/)
 
 ## Commands
 
-- `npm run lint` - run an ESLint check
-- `npm run coverage` - run code coverage and generate report in the `coverage` folder
+- `yarn lint` - run an ESLint check
+- `yarn coverage` - run code coverage and generate report in the `coverage` folder
 - `npm test` - run all tests
-- `npm run test:watch` - run all tests in watch mode
+- `yarn test:watch` - run all tests in watch mode
 
 ## Configuration
 

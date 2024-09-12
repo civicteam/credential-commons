@@ -3,7 +3,7 @@ version: 2
 defaults: &defaults
   working_directory: ~/repo
   docker:
-    - image: circleci/node:12.19.0
+    - image: cimg/node:20.11.1
 
 workflows:
   version: 2
@@ -56,7 +56,6 @@ jobs:
       - restore_cache:
           keys:
           - v1-dependencies-{{ checksum "package.json" }}-{{checksum "package-lock.json"}}
-      - run: sudo npm install -g npm@6.14.13
       - run: npm ci
       - save_cache:
           paths:
@@ -64,10 +63,10 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}-{{checksum "package-lock.json"}}
       - run:
           name: run tests incl coverage
-          command: npm run test
-      - run: npm run lint
-      - run: npm run build
-      - run: npm run audit-ci -- --pass-enoaudit
+          command: yarn test
+      - run: yarn lint
+      - run: yarn build
+      - run: yarn audit-ci -- --pass-enoaudit
       - persist_to_workspace:
           root: ~/repo
           paths: .
@@ -82,7 +81,6 @@ jobs:
       - restore_cache:
           keys:
           - v1-dependencies-{{ checksum "package.json" }}-{{checksum "package-lock.json"}}
-      - run: sudo npm install -g npm@6.14.13
       - run: |
           sh ./.circleci/install_hub.sh
           mkdir -p ~/.config/ && echo -e "github.com:\n- user: civictechuser\n  oauth_token: $GITHUB_API_KEY\n  protocol: https\n" > ~/.config/hub
@@ -93,9 +91,9 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}-{{checksum "package-lock.json"}}
       - run:
           name: run tests incl coverage
-          command: npm run test
-      - run: npm run lint
-      - run: npm run build
+          command: yarn test
+      - run: yarn lint
+      - run: yarn build
       - run:
           name: git config
           command: |
@@ -105,7 +103,7 @@ jobs:
             git config --global push.default simple
       - run:
           name: create-release
-          command: npm run release:create
+          command: yarn release:create
       - run:
           name: delete-release-tag
           command: git push --delete origin $CIRCLE_TAG
