@@ -704,3 +704,4 @@ increase version number on package.json
 create the stable version and tag it. E.g: v0.2.29
 remove the release.N tag
 deploy the binary file to NPM
+
